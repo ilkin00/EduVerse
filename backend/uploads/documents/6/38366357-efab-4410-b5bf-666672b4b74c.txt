@@ -1,0 +1,3 @@
+Bu bir test metin dosyasıdır. EduVerse API testi için oluşturuldu.
+Line 2: Test mesajı
+Line 3: 2026-02-21

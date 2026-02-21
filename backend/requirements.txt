@@ -1,0 +1,21 @@
+fastapi
+uvicorn
+sqlalchemy
+alembic
+psycopg2-binary
+asyncpg
+redis
+pydantic
+pydantic-settings
+python-jose
+passlib
+python-multipart
+python-dotenv
+httpx
+loguru
+email-validator
+websockets
+# Dosya yükleme için
+python-magic==0.4.27
+Pillow==10.1.0
+aiofiles==23.2.1

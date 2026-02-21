@@ -1,0 +1,88 @@
+services:
+  # PostgreSQL Veritabanı
+  postgres:
+    image: postgres:15-alpine
+    container_name: eduverse-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: eduverse_user
+      POSTGRES_PASSWORD: EduVerse2026!
+      POSTGRES_DB: eduverse_db
+      TZ: Europe/Istanbul
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - eduverse-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eduverse_user -d eduverse_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: eduverse-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - eduverse-network
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend
+  backend:
+    build: ./backend
+    container_name: eduverse-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - POSTGRES_SERVER=postgres
+      - POSTGRES_USER=eduverse_user
+      - POSTGRES_PASSWORD=EduVerse2026!
+      - POSTGRES_DB=eduverse_db
+      - POSTGRES_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SECRET_KEY=eduverse-gizli-anahtar-2026
+    volumes:
+      - ./backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - eduverse-network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Adminer - Veritabanı Yönetim Aracı (opsiyonel)
+  adminer:
+    image: adminer:latest
+    container_name: eduverse-adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    networks:
+      - eduverse-network
+    depends_on:
+      - postgres
+
+networks:
+  eduverse-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
