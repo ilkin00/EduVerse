@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function LoginScreen({ navigation }) {
@@ -21,26 +22,22 @@ export default function LoginScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   
   const { login } = useAuth();
+  const { t } = useLanguage();
 
   const handleLogin = async () => {
     if (!username || !password) {
-      Alert.alert('Hata', 'Kullanıcı adı ve şifre giriniz');
+      Alert.alert(t('common.error'), t('auth.login_error') || 'Kullanıcı adı ve şifre giriniz');
       return;
     }
     
-    console.log('Login button pressed:', username);
     setLoading(true);
-    
     const result = await login(username, password);
-    console.log('Login result:', result);
-    
     setLoading(false);
     
     if (result.success) {
-      console.log('Login successful, navigating to Main');
       navigation.replace('Main');
     } else {
-      Alert.alert('Giriş Başarısız', result.error);
+      Alert.alert(t('common.error'), result.error);
     }
   };
 
@@ -55,8 +52,8 @@ export default function LoginScreen({ navigation }) {
         <View style={styles.logoContainer}>
           <Ionicons name="school" size={50} color="#6366F1" />
         </View>
-        <Text style={styles.title}>StudyVerse</Text>
-        <Text style={styles.subtitle}>Tekrar Hoşgeldin!</Text>
+        <Text style={styles.title}>EduVerse</Text>
+        <Text style={styles.subtitle}>{t('auth.login')}</Text>
       </View>
 
       <View style={styles.form}>
@@ -64,7 +61,7 @@ export default function LoginScreen({ navigation }) {
           <Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
           <TextInput
             style={styles.input}
-            placeholder="Kullanıcı Adı"
+            placeholder={t('auth.username')}
             placeholderTextColor="#666"
             value={username}
             onChangeText={setUsername}
@@ -76,7 +73,7 @@ export default function LoginScreen({ navigation }) {
           <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
           <TextInput
             style={styles.input}
-            placeholder="Şifre"
+            placeholder={t('auth.password')}
             placeholderTextColor="#666"
             secureTextEntry={!showPassword}
             value={password}
@@ -92,7 +89,7 @@ export default function LoginScreen({ navigation }) {
         </View>
 
         <TouchableOpacity style={styles.forgotPassword}>
-          <Text style={styles.forgotPasswordText}>Şifremi Unuttum</Text>
+          <Text style={styles.forgotPasswordText}>{t('auth.forgot_password')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity 
@@ -103,14 +100,14 @@ export default function LoginScreen({ navigation }) {
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.loginButtonText}>Giriş Yap</Text>
+            <Text style={styles.loginButtonText}>{t('auth.login')}</Text>
           )}
         </TouchableOpacity>
 
         <View style={styles.registerContainer}>
-          <Text style={styles.registerText}>Hesabın yok mu? </Text>
+          <Text style={styles.registerText}>{t('auth.no_account')} </Text>
           <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-            <Text style={styles.registerLink}>Kayıt Ol</Text>
+            <Text style={styles.registerLink}>{t('auth.register')}</Text>
           </TouchableOpacity>
         </View>
       </View>

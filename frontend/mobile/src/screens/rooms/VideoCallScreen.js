@@ -7,8 +7,10 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function VideoCallScreen({ route, navigation }) {
+  const { t } = useLanguage();
   const { roomId, roomName } = route.params;
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
@@ -16,9 +18,9 @@ export default function VideoCallScreen({ route, navigation }) {
 
   const showComingSoon = () => {
     Alert.alert(
-      'Yakında',
-      'Görüntülü sohbet özelliği şu anda geliştirme aşamasında. Çok yakında!',
-      [{ text: 'Tamam' }]
+      t('common.coming_soon'),
+      t('rooms.video_coming_soon'),
+      [{ text: t('common.ok') }]
     );
   };
 
@@ -28,21 +30,17 @@ export default function VideoCallScreen({ route, navigation }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.iconContainer}>
+      <View style={styles.placeholder}>
+        <View style={styles.logoContainer}>
           <Ionicons name="videocam" size={100} color="#6366F1" />
         </View>
-        
-        <Text style={styles.title}>Görüntülü Sohbet</Text>
+        <Text style={styles.placeholderText}>{t('rooms.video_call')}</Text>
         <Text style={styles.roomName}>{roomName}</Text>
-        
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>YAKINDA</Text>
+        <View style={styles.comingSoonBadge}>
+          <Text style={styles.comingSoonText}>{t('common.coming_soon').toUpperCase()}</Text>
         </View>
-        
         <Text style={styles.description}>
-          Gerçek zamanlı görüntülü sohbet özelliği üzerinde çalışıyoruz.{'\n'}
-          En kısa sürede sizlerle!
+          {t('rooms.video_coming_soon')}
         </Text>
       </View>
 
@@ -96,13 +94,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0A0A0F',
   },
-  content: {
+  placeholder: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 30,
+    paddingHorizontal: 40,
   },
-  iconContainer: {
+  logoContainer: {
     width: 150,
     height: 150,
     borderRadius: 75,
@@ -114,7 +112,7 @@ const styles = StyleSheet.create({
     borderColor: '#6366F1',
     borderStyle: 'dashed',
   },
-  title: {
+  placeholderText: {
     color: '#fff',
     fontSize: 28,
     fontWeight: 'bold',
@@ -125,14 +123,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginBottom: 20,
   },
-  badge: {
+  comingSoonBadge: {
     backgroundColor: '#6366F1',
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 20,
-    marginBottom: 25,
+    marginBottom: 20,
   },
-  badgeText: {
+  comingSoonText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: 'bold',

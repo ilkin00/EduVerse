@@ -5,39 +5,39 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function HomeScreen({ navigation }) {
   const { user } = useAuth();
+  const { t } = useLanguage();
 
   const quickActions = [
-    { id: 1, title: 'Yeni Not', icon: 'create-outline', color: '#6366F1', screen: 'Notes' },
-    { id: 2, title: 'AI Soru', icon: 'flash-outline', color: '#8B5CF6', screen: 'AI' },
-    { id: 3, title: 'Oda Kur', icon: 'videocam-outline', color: '#EC4899', screen: 'Rooms' },
+    { id: 1, title: t('notes.new_note'), icon: 'create-outline', color: '#6366F1', screen: 'Notes' },
+    { id: 2, title: t('ai.chat'), icon: 'flash-outline', color: '#8B5CF6', screen: 'AI' },
+    { id: 3, title: t('rooms.create_room'), icon: 'videocam-outline', color: '#EC4899', screen: 'Rooms' },
   ];
 
   const continuingCourses = [
-    { id: 1, title: 'Lineer Cebir', subtitle: 'Matris İşlemleri', progress: 0.65, color: '#6366F1' },
-    { id: 2, title: 'Fizik II', subtitle: 'Elektromanyetizma', progress: 0.4, color: '#8B5CF6' },
-    { id: 3, title: 'Organik Kimya', subtitle: 'Alkanlar', progress: 0.8, color: '#EC4899' },
+    { id: 1, title: t('courses.linear_algebra'), subtitle: t('courses.matrix_operations'), progress: 0.65, color: '#6366F1' },
+    { id: 2, title: t('courses.physics'), subtitle: t('courses.electromagnetism'), progress: 0.4, color: '#8B5CF6' },
+    { id: 3, title: t('courses.chemistry'), subtitle: t('courses.alkanes'), progress: 0.8, color: '#EC4899' },
   ];
 
   const schedule = [
-    { id: 1, time: '09:00', title: 'Lineer Cebir Çalışması', duration: '45 dk', active: true },
-    { id: 2, time: '14:00', title: 'Fizik Quiz Hazırlığı', duration: '60 dk', active: false },
-    { id: 3, time: '16:30', title: 'Grup Çalışması', duration: '90 dk', active: false },
+    { id: 1, time: '09:00', title: t('courses.linear_algebra'), duration: '45 min', active: true },
+    { id: 2, time: '14:00', title: t('courses.physics_quiz'), duration: '60 min', active: false },
+    { id: 3, time: '16:30', title: t('courses.group_study'), duration: '90 min', active: false },
   ];
 
   return (
     <ScrollView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>Günaydın,</Text>
-          <Text style={styles.userName}>{user?.fullName || 'Kullanıcı'}</Text>
+          <Text style={styles.greeting}>{t('common.welcome')},</Text>
+          <Text style={styles.userName}>{user?.fullName || t('common.user')}</Text>
         </View>
         <TouchableOpacity style={styles.notificationButton}>
           <Ionicons name="notifications-outline" size={24} color="#fff" />
@@ -45,18 +45,16 @@ export default function HomeScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* Search Bar */}
       <TouchableOpacity style={styles.searchBar}>
         <Ionicons name="search-outline" size={20} color="#666" />
-        <Text style={styles.searchText}>Notlarınızda arayın...</Text>
+        <Text style={styles.searchText}>{t('notes.search')}</Text>
         <View style={styles.micButton}>
           <Ionicons name="mic" size={20} color="#6366F1" />
         </View>
       </TouchableOpacity>
 
-      {/* Quick Actions */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Hızlı İşlemler</Text>
+        <Text style={styles.sectionTitle}>{t('home.quick_actions')}</Text>
         <View style={styles.quickActions}>
           {quickActions.map(action => (
             <TouchableOpacity 
@@ -73,12 +71,11 @@ export default function HomeScreen({ navigation }) {
         </View>
       </View>
 
-      {/* Continue Studying */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Çalışmaya Devam Et</Text>
+          <Text style={styles.sectionTitle}>{t('home.continue_studying')}</Text>
           <TouchableOpacity>
-            <Text style={styles.seeAll}>Tümü</Text>
+            <Text style={styles.seeAll}>{t('common.view_all')}</Text>
           </TouchableOpacity>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -92,15 +89,14 @@ export default function HomeScreen({ navigation }) {
               <View style={styles.progressBar}>
                 <View style={[styles.progressFill, { width: `${course.progress * 100}%`, backgroundColor: course.color }]} />
               </View>
-              <Text style={styles.progressText}>{Math.round(course.progress * 100)}% tamamlandı</Text>
+              <Text style={styles.progressText}>{Math.round(course.progress * 100)}% {t('home.completed')}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
       </View>
 
-      {/* Today's Schedule */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Bugünün Programı</Text>
+        <Text style={styles.sectionTitle}>{t('home.today_schedule')}</Text>
         {schedule.map(item => (
           <TouchableOpacity key={item.id} style={[styles.scheduleItem, item.active && styles.activeSchedule]}>
             <View style={[styles.scheduleTime, item.active && styles.activeScheduleTime]}>
@@ -121,9 +117,8 @@ export default function HomeScreen({ navigation }) {
         ))}
       </View>
 
-      {/* AI Assistant */}
       <View style={[styles.section, styles.lastSection]}>
-        <Text style={styles.sectionTitle}>AI Asistanlar</Text>
+        <Text style={styles.sectionTitle}>{t('home.ai_assistants')}</Text>
         <TouchableOpacity 
           style={styles.aiCard}
           onPress={() => navigation.navigate('AI')}
@@ -132,8 +127,8 @@ export default function HomeScreen({ navigation }) {
             <View style={styles.aiIcon}>
               <Ionicons name="flash" size={24} color="#fff" />
             </View>
-            <Text style={styles.aiTitle}>Matematik Çözücü</Text>
-            <Text style={styles.aiDescription}>Fotoğraf çek, anında çözüm al</Text>
+            <Text style={styles.aiTitle}>{t('home.math_solver')}</Text>
+            <Text style={styles.aiDescription}>{t('home.math_solver_desc')}</Text>
           </View>
           <View style={styles.aiArrow}>
             <Ionicons name="arrow-forward" size={24} color="#fff" />

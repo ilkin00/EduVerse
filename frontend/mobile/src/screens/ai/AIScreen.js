@@ -7,59 +7,62 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
-const aiFeatures = [
-  {
-    id: 'chat',
-    title: 'Sohbet',
-    description: 'Genel sohbet',
-    icon: 'chatbubbles',
-    color: '#6366F1',
-    screen: 'AIChat',
-  },
-  {
-    id: 'math',
-    title: 'Matematik',
-    description: 'Problem çöz',
-    icon: 'calculator',
-    color: '#8B5CF6',
-    screen: 'AIMath',
-  },
-  {
-    id: 'explain',
-    title: 'Konu Anlat',
-    description: 'Ders açıkla',
-    icon: 'school',
-    color: '#EC4899',
-    screen: 'AIExplain',
-  },
-  {
-    id: 'quiz',
-    title: 'Quiz',
-    description: 'Soru üret',
-    icon: 'help-circle',
-    color: '#10B981',
-    screen: 'AIQuiz',
-  },
-  {
-    id: 'summarize',
-    title: 'Özetle',
-    description: 'Metin özeti',
-    icon: 'document-text',
-    color: '#F59E0B',
-    screen: 'AISummarize',
-  },
-  {
-    id: 'code',
-    title: 'Kod',
-    description: 'Programlama',
-    icon: 'code-slash',
-    color: '#3B82F6',
-    screen: 'AICode',
-  },
-];
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function AIScreen({ navigation }) {
+  const { t } = useLanguage();
+
+  const aiFeatures = [
+    {
+      id: 'chat',
+      title: t('ai.chat'),
+      description: t('ai.chat_desc'),
+      icon: 'chatbubbles',
+      color: '#6366F1',
+      screen: 'AIChat',
+    },
+    {
+      id: 'math',
+      title: t('ai.math'),
+      description: t('ai.math_desc'),
+      icon: 'calculator',
+      color: '#8B5CF6',
+      screen: 'AIMath',
+    },
+    {
+      id: 'explain',
+      title: t('ai.explain'),
+      description: t('ai.explain_desc'),
+      icon: 'school',
+      color: '#EC4899',
+      screen: 'AIExplain',
+    },
+    {
+      id: 'quiz',
+      title: t('ai.quiz'),
+      description: t('ai.quiz_desc'),
+      icon: 'help-circle',
+      color: '#10B981',
+      screen: 'AIQuiz',
+    },
+    {
+      id: 'summarize',
+      title: t('ai.summarize'),
+      description: t('ai.summarize_desc'),
+      icon: 'document-text',
+      color: '#F59E0B',
+      screen: 'AISummarize',
+    },
+    {
+      id: 'code',
+      title: t('ai.code'),
+      description: t('ai.code_desc'),
+      icon: 'code-slash',
+      color: '#3B82F6',
+      screen: 'AICode',
+    },
+  ];
+
   const renderFeature = (feature) => (
     <TouchableOpacity
       key={feature.id}
@@ -77,10 +80,8 @@ export default function AIScreen({ navigation }) {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>AI Asistan</Text>
-        <Text style={styles.headerSubtitle}>
-          Yapay zeka destekli öğrenme araçları
-        </Text>
+        <Text style={styles.headerTitle}>{t('ai.title')}</Text>
+        <Text style={styles.headerSubtitle}>{t('ai.subtitle')}</Text>
       </View>
 
       <View style={styles.featuresGrid}>
@@ -95,10 +96,8 @@ export default function AIScreen({ navigation }) {
           <Ionicons name="chatbubbles" size={24} color="#6366F1" />
         </View>
         <View style={styles.chatContent}>
-          <Text style={styles.chatTitle}>Genel Sohbet</Text>
-          <Text style={styles.chatDescription}>
-            Merhaba! Ben StudyVerse AI Asistanıyım. Size nasıl yardımcı olabilirim?
-          </Text>
+          <Text style={styles.chatTitle}>{t('ai.general_chat')}</Text>
+          <Text style={styles.chatDescription}>{t('ai.general_chat_desc')}</Text>
         </View>
         <Ionicons name="arrow-forward" size={24} color="#6366F1" />
       </TouchableOpacity>

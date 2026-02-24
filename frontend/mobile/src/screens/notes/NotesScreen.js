@@ -5,17 +5,18 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Modal,
   ActivityIndicator,
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useLanguage } from '../../context/LanguageContext';
 import api from '../../services/api';
 
 export default function NotesScreen({ navigation }) {
+  const { t } = useLanguage();
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('Tümü');
+  const [filter, setFilter] = useState('all');
 
   useEffect(() => {
     loadNotes();
@@ -27,7 +28,7 @@ export default function NotesScreen({ navigation }) {
       const response = await api.get('/notes/');
       setNotes(response.data);
     } catch (error) {
-      Alert.alert('Hata', 'Notlar yüklenemedi');
+      Alert.alert(t('common.error'), t('notes.load_error'));
     } finally {
       setLoading(false);
     }
@@ -35,19 +36,19 @@ export default function NotesScreen({ navigation }) {
 
   const deleteNote = async (id) => {
     Alert.alert(
-      'Notu Sil',
-      'Bu notu silmek istediğinize emin misiniz?',
+      t('notes.delete_note'),
+      t('notes.confirm_delete'),
       [
-        { text: 'İptal', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Sil',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
               await api.delete(`/notes/${id}`);
               setNotes(notes.filter(note => note.id !== id));
             } catch (error) {
-              Alert.alert('Hata', 'Not silinemedi');
+              Alert.alert(t('common.error'), t('notes.delete_error'));
             }
           },
         },
@@ -56,8 +57,8 @@ export default function NotesScreen({ navigation }) {
   };
 
   const getFilteredNotes = () => {
-    if (filter === 'Tümü') return notes;
-    return notes.filter(note => note.note_type === filter.toLowerCase());
+    if (filter === 'all') return notes;
+    return notes.filter(note => note.note_type === filter);
   };
 
   const getTimeAgo = (dateString) => {
@@ -65,10 +66,10 @@ export default function NotesScreen({ navigation }) {
     const now = new Date();
     const diff = Math.floor((now - date) / 1000);
 
-    if (diff < 60) return 'Az önce';
-    if (diff < 3600) return `${Math.floor(diff / 60)} dakika önce`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)} saat önce`;
-    return `${Math.floor(diff / 86400)} gün önce`;
+    if (diff < 60) return t('notes.just_now');
+    if (diff < 3600) return t('notes.minutes_ago', { count: Math.floor(diff / 60) });
+    if (diff < 86400) return t('notes.hours_ago', { count: Math.floor(diff / 3600) });
+    return t('notes.days_ago', { count: Math.floor(diff / 86400) });
   };
 
   const renderNote = ({ item }) => (
@@ -103,21 +104,10 @@ export default function NotesScreen({ navigation }) {
     </TouchableOpacity>
   );
 
-  const renderFilterButton = (label) => (
-    <TouchableOpacity
-      style={[styles.filterButton, filter === label && styles.filterButtonActive]}
-      onPress={() => setFilter(label)}
-    >
-      <Text style={[styles.filterText, filter === label && styles.filterTextActive]}>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Notlarım</Text>
+        <Text style={styles.headerTitle}>{t('notes.title')}</Text>
         <TouchableOpacity 
           style={styles.addButton}
           onPress={() => navigation.navigate('NoteEditor')}
@@ -127,10 +117,38 @@ export default function NotesScreen({ navigation }) {
       </View>
 
       <View style={styles.filterContainer}>
-        {renderFilterButton('Tümü')}
-        {renderFilterButton('Metin')}
-        {renderFilterButton('Çizim')}
-        {renderFilterButton('Ses')}
+        <TouchableOpacity
+          style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]}
+          onPress={() => setFilter('all')}
+        >
+          <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>
+            {t('notes.filter_all')}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.filterButton, filter === 'text' && styles.filterButtonActive]}
+          onPress={() => setFilter('text')}
+        >
+          <Text style={[styles.filterText, filter === 'text' && styles.filterTextActive]}>
+            {t('notes.filter_text')}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.filterButton, filter === 'drawing' && styles.filterButtonActive]}
+          onPress={() => setFilter('drawing')}
+        >
+          <Text style={[styles.filterText, filter === 'drawing' && styles.filterTextActive]}>
+            {t('notes.filter_drawing')}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.filterButton, filter === 'audio' && styles.filterButtonActive]}
+          onPress={() => setFilter('audio')}
+        >
+          <Text style={[styles.filterText, filter === 'audio' && styles.filterTextActive]}>
+            {t('notes.filter_audio')}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {loading ? (
@@ -146,12 +164,12 @@ export default function NotesScreen({ navigation }) {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Ionicons name="document-text-outline" size={64} color="#333" />
-              <Text style={styles.emptyText}>Henüz not eklenmemiş</Text>
+              <Text style={styles.emptyText}>{t('notes.empty')}</Text>
               <TouchableOpacity 
                 style={styles.emptyButton}
                 onPress={() => navigation.navigate('NoteEditor')}
               >
-                <Text style={styles.emptyButtonText}>Yeni Not Oluştur</Text>
+                <Text style={styles.emptyButtonText}>{t('notes.create_first')}</Text>
               </TouchableOpacity>
             </View>
           }

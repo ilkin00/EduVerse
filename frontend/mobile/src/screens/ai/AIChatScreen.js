@@ -11,13 +11,15 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useLanguage } from '../../context/LanguageContext';
 import api from '../../services/api';
 
 export default function AIChatScreen({ navigation }) {
+  const { t } = useLanguage();
   const [messages, setMessages] = useState([
     {
       id: '1',
-      text: 'Merhaba! Ben StudyVerse AI Asistanıyım. Size nasıl yardımcı olabilirim?',
+      text: t('ai.welcome_message'),
       sender: 'ai',
       timestamp: new Date(),
     },
@@ -35,38 +37,21 @@ export default function AIChatScreen({ navigation }) {
     { id: 'cognitivecomputations/dolphin-mixtral-8x7b', name: 'Dolphin Mixtral', free: true },
   ];
 
-  // Response'dan metin çıkaran yardımcı fonksiyon
   const extractResponseText = (data) => {
-    if (!data) return 'Cevap alınamadı';
-    
-    // String ise direkt döndür
+    if (!data) return t('ai.no_response');
     if (typeof data === 'string') return data;
-    
-    // OpenRouter formatı (en yeni gördüğümüz)
     if (data.choices && data.choices[0]?.message?.content) {
       return data.choices[0].message.content;
     }
-    
-    // Object ise tüm olası alanları kontrol et
     if (typeof data === 'object') {
-      // Matematik çözümü
       if (data.solution) return data.solution;
-      // Konu anlatımı
       if (data.explanation) return data.explanation;
-      // Quiz
-      if (data.quiz) return JSON.stringify(data.quiz);
-      // Sohbet
       if (data.response) return data.response;
       if (data.message) return data.message;
       if (data.content) return data.content;
-      if (data.text) return data.text;
-      if (data.answer) return data.answer;
-      
-      // Hiçbiri yoksa object'i string'e çevir
       return JSON.stringify(data, null, 2);
     }
-    
-    return 'Cevap alınamadı';
+    return t('ai.no_response');
   };
 
   const sendMessage = async () => {
@@ -90,8 +75,6 @@ export default function AIChatScreen({ navigation }) {
         temperature: 0.7,
       });
 
-      console.log('AI Response:', JSON.stringify(response.data, null, 2));
-      
       const aiResponseText = extractResponseText(response.data);
 
       const aiMessage = {
@@ -103,11 +86,9 @@ export default function AIChatScreen({ navigation }) {
 
       setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
-      console.log('Chat error:', error);
-      
       const errorMessage = {
         id: (Date.now() + 1).toString(),
-        text: 'Üzgünüm, bir hata oluştu. Lütfen tekrar deneyin.',
+        text: t('ai.error'),
         sender: 'ai',
         timestamp: new Date(),
       };
@@ -144,31 +125,6 @@ export default function AIChatScreen({ navigation }) {
     </View>
   );
 
-  const renderModelSelector = () => (
-    <View style={styles.modelSelector}>
-      {models.map(model => (
-        <TouchableOpacity
-          key={model.id}
-          style={[
-            styles.modelOption,
-            selectedModel === model.id && styles.modelOptionSelected
-          ]}
-          onPress={() => {
-            setSelectedModel(model.id);
-            setShowModelSelector(false);
-          }}
-        >
-          <Text style={[
-            styles.modelOptionText,
-            selectedModel === model.id && styles.modelOptionTextSelected
-          ]}>
-            {model.name} {model.free && '🆓'}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
-
   return (
     <KeyboardAvoidingView 
       style={styles.container}
@@ -179,13 +135,36 @@ export default function AIChatScreen({ navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>AI Sohbet</Text>
+        <Text style={styles.headerTitle}>{t('ai.chat')}</Text>
         <TouchableOpacity onPress={() => setShowModelSelector(!showModelSelector)}>
           <Ionicons name="options-outline" size={24} color="#6366F1" />
         </TouchableOpacity>
       </View>
 
-      {showModelSelector && renderModelSelector()}
+      {showModelSelector && (
+        <View style={styles.modelSelector}>
+          {models.map(model => (
+            <TouchableOpacity
+              key={model.id}
+              style={[
+                styles.modelOption,
+                selectedModel === model.id && styles.modelOptionSelected
+              ]}
+              onPress={() => {
+                setSelectedModel(model.id);
+                setShowModelSelector(false);
+              }}
+            >
+              <Text style={[
+                styles.modelOptionText,
+                selectedModel === model.id && styles.modelOptionTextSelected
+              ]}>
+                {model.name} {model.free && '🆓'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       <FlatList
         ref={flatListRef}
@@ -199,7 +178,7 @@ export default function AIChatScreen({ navigation }) {
       {loading && (
         <View style={styles.typingIndicator}>
           <ActivityIndicator size="small" color="#6366F1" />
-          <Text style={styles.typingText}>AI yazıyor...</Text>
+          <Text style={styles.typingText}>{t('ai.thinking')}</Text>
         </View>
       )}
 
@@ -208,10 +187,9 @@ export default function AIChatScreen({ navigation }) {
           style={styles.input}
           value={inputText}
           onChangeText={setInputText}
-          placeholder="Mesaj yaz..."
+          placeholder={t('ai.ask')}
           placeholderTextColor="#666"
           multiline
-          maxLength={500}
         />
         <TouchableOpacity 
           style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}

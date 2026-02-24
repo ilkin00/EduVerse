@@ -1,6 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { useLanguage } from '../context/LanguageContext';
 
 // Screens
 import HomeScreen from '../screens/home/HomeScreen';
@@ -12,6 +13,8 @@ import ProfileScreen from '../screens/profile/ProfileScreen';
 const Tab = createBottomTabNavigator();
 
 export default function MainTabNavigator() {
+  const { t } = useLanguage();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -43,11 +46,31 @@ export default function MainTabNavigator() {
         headerShown: false,
       })}
     >
-      <Tab.Screen name="Ana Sayfa" component={HomeScreen} />
-      <Tab.Screen name="Notlar" component={NotesStack} />
-      <Tab.Screen name="AI" component={AIStack} />
-      <Tab.Screen name="Odalar" component={RoomsStack} />
-      <Tab.Screen name="Profil" component={ProfileScreen} />
+      <Tab.Screen 
+        name="Ana Sayfa" 
+        component={HomeScreen} 
+        options={{ title: t('home.title') || 'Ana Sayfa' }}
+      />
+      <Tab.Screen 
+        name="Notlar" 
+        component={NotesStack} 
+        options={{ title: t('notes.title') || 'Notlar' }}
+      />
+      <Tab.Screen 
+        name="AI" 
+        component={AIStack} 
+        options={{ title: t('ai.title') || 'AI' }}
+      />
+      <Tab.Screen 
+        name="Odalar" 
+        component={RoomsStack} 
+        options={{ title: t('rooms.title') || 'Odalar' }}
+      />
+      <Tab.Screen 
+        name="Profil" 
+        component={ProfileScreen} 
+        options={{ title: t('profile.title') || 'Profil' }}
+      />
     </Tab.Navigator>
   );
 }

@@ -11,9 +11,11 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useLanguage } from '../../context/LanguageContext';
 import api from '../../services/api';
 
 export default function RoomsScreen({ navigation }) {
+  const { t } = useLanguage();
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
@@ -32,7 +34,7 @@ export default function RoomsScreen({ navigation }) {
       const response = await api.get('/rooms/');
       setRooms(response.data);
     } catch (error) {
-      Alert.alert('Hata', 'Odalar yüklenemedi');
+      Alert.alert(t('common.error'), t('rooms.load_error'));
     } finally {
       setLoading(false);
     }
@@ -40,7 +42,7 @@ export default function RoomsScreen({ navigation }) {
 
   const createRoom = async () => {
     if (!roomName.trim()) {
-      Alert.alert('Hata', 'Oda adı giriniz');
+      Alert.alert(t('common.error'), t('rooms.name_required'));
       return;
     }
 
@@ -56,7 +58,7 @@ export default function RoomsScreen({ navigation }) {
       setModalVisible(false);
       resetForm();
     } catch (error) {
-      Alert.alert('Hata', 'Oda oluşturulamadı');
+      Alert.alert(t('common.error'), t('rooms.create_error'));
     }
   };
 
@@ -65,7 +67,7 @@ export default function RoomsScreen({ navigation }) {
       await api.post(`/rooms/${roomId}/join`);
       navigation.navigate('RoomDetail', { roomId });
     } catch (error) {
-      Alert.alert('Hata', 'Odaya katılınamadı');
+      Alert.alert(t('common.error'), t('rooms.join_error'));
     }
   };
 
@@ -122,14 +124,14 @@ export default function RoomsScreen({ navigation }) {
           {item.is_active && (
             <View style={styles.activeBadge}>
               <View style={styles.activeDot} />
-              <Text style={styles.activeText}>Canlı</Text>
+              <Text style={styles.activeText}>{t('rooms.active')}</Text>
             </View>
           )}
         </View>
       </View>
 
       <View style={styles.joinButton}>
-        <Text style={styles.joinButtonText}>Katıl</Text>
+        <Text style={styles.joinButtonText}>{t('rooms.join')}</Text>
         <Ionicons name="arrow-forward" size={16} color="#6366F1" />
       </View>
     </TouchableOpacity>
@@ -137,11 +139,10 @@ export default function RoomsScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>Çalışma Odaları</Text>
-          <Text style={styles.headerSubtitle}>Arkadaşlarınla birlikte çalış</Text>
+          <Text style={styles.headerTitle}>{t('rooms.title')}</Text>
+          <Text style={styles.headerSubtitle}>{t('rooms.subtitle')}</Text>
         </View>
         <TouchableOpacity 
           style={styles.addButton}
@@ -154,7 +155,6 @@ export default function RoomsScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* Create Room Card */}
       <TouchableOpacity 
         style={styles.createCard}
         onPress={() => {
@@ -163,16 +163,15 @@ export default function RoomsScreen({ navigation }) {
         }}
       >
         <View>
-          <Text style={styles.createCardTitle}>Yeni Oda Oluştur</Text>
-          <Text style={styles.createCardSubtitle}>Hemen başla, davet et</Text>
+          <Text style={styles.createCardTitle}>{t('rooms.create_room')}</Text>
+          <Text style={styles.createCardSubtitle}>{t('rooms.create_subtitle')}</Text>
         </View>
         <View style={styles.createCardIcon}>
           <Ionicons name="add" size={24} color="#fff" />
         </View>
       </TouchableOpacity>
 
-      {/* Rooms List */}
-      <Text style={styles.sectionTitle}>Aktif Odalar</Text>
+      <Text style={styles.sectionTitle}>{t('rooms.active_rooms')}</Text>
 
       {loading ? (
         <View style={styles.loadingContainer}>
@@ -187,14 +186,13 @@ export default function RoomsScreen({ navigation }) {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Ionicons name="videocam-outline" size={64} color="#333" />
-              <Text style={styles.emptyText}>Henüz oda yok</Text>
-              <Text style={styles.emptySubText}>Yeni bir oda oluşturarak başlayın</Text>
+              <Text style={styles.emptyText}>{t('rooms.empty')}</Text>
+              <Text style={styles.emptySubText}>{t('rooms.empty_subtitle')}</Text>
             </View>
           }
         />
       )}
 
-      {/* Create Room Modal */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -207,7 +205,7 @@ export default function RoomsScreen({ navigation }) {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Yeni Oda Oluştur</Text>
+              <Text style={styles.modalTitle}>{t('rooms.create_room')}</Text>
               <TouchableOpacity
                 onPress={() => {
                   setModalVisible(false);
@@ -218,7 +216,6 @@ export default function RoomsScreen({ navigation }) {
               </TouchableOpacity>
             </View>
 
-            {/* Room Type Selector */}
             <View style={styles.typeSelector}>
               <TouchableOpacity
                 style={[styles.typeButton, roomType === 'public' && styles.typeButtonActive]}
@@ -226,7 +223,7 @@ export default function RoomsScreen({ navigation }) {
               >
                 <Ionicons name="people" size={20} color={roomType === 'public' ? '#6366F1' : '#666'} />
                 <Text style={[styles.typeText, roomType === 'public' && styles.typeTextActive]}>
-                  Herkese Açık
+                  {t('rooms.public')}
                 </Text>
               </TouchableOpacity>
               
@@ -236,7 +233,7 @@ export default function RoomsScreen({ navigation }) {
               >
                 <Ionicons name="lock-closed" size={20} color={roomType === 'private' ? '#6366F1' : '#666'} />
                 <Text style={[styles.typeText, roomType === 'private' && styles.typeTextActive]}>
-                  Özel
+                  {t('rooms.private')}
                 </Text>
               </TouchableOpacity>
               
@@ -246,15 +243,14 @@ export default function RoomsScreen({ navigation }) {
               >
                 <Ionicons name="school" size={20} color={roomType === 'study' ? '#6366F1' : '#666'} />
                 <Text style={[styles.typeText, roomType === 'study' && styles.typeTextActive]}>
-                  Çalışma
+                  {t('rooms.study')}
                 </Text>
               </TouchableOpacity>
             </View>
 
-            {/* Room Form */}
             <TextInput
               style={styles.input}
-              placeholder="Oda Adı"
+              placeholder={t('rooms.room_name')}
               placeholderTextColor="#666"
               value={roomName}
               onChangeText={setRoomName}
@@ -262,7 +258,7 @@ export default function RoomsScreen({ navigation }) {
 
             <TextInput
               style={[styles.input, styles.textArea]}
-              placeholder="Açıklama (opsiyonel)"
+              placeholder={t('rooms.room_description')}
               placeholderTextColor="#666"
               value={roomDescription}
               onChangeText={setRoomDescription}
@@ -272,7 +268,7 @@ export default function RoomsScreen({ navigation }) {
             />
 
             <View style={styles.participantInput}>
-              <Text style={styles.participantLabel}>Maksimum Katılımcı:</Text>
+              <Text style={styles.participantLabel}>{t('rooms.max_participants')}</Text>
               <TextInput
                 style={styles.participantField}
                 placeholder="10"
@@ -287,7 +283,7 @@ export default function RoomsScreen({ navigation }) {
               style={styles.createButton}
               onPress={createRoom}
             >
-              <Text style={styles.createButtonText}>Oda Oluştur</Text>
+              <Text style={styles.createButtonText}>{t('rooms.create_room')}</Text>
             </TouchableOpacity>
           </View>
         </View>

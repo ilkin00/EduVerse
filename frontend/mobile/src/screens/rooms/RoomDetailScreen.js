@@ -13,10 +13,12 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { io } from 'socket.io-client';
+import { useLanguage } from '../../context/LanguageContext';
 import api from '../../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function RoomDetailScreen({ route, navigation }) {
+  const { t } = useLanguage();
   const { roomId } = route.params;
   const [room, setRoom] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -47,7 +49,7 @@ export default function RoomDetailScreen({ route, navigation }) {
       setRoom(roomRes.data);
       setParticipants(participantsRes.data);
     } catch (error) {
-      Alert.alert('Hata', 'Oda bilgileri yüklenemedi');
+      Alert.alert(t('common.error'), t('rooms.load_error'));
       navigation.goBack();
     } finally {
       setLoading(false);
@@ -65,7 +67,7 @@ export default function RoomDetailScreen({ route, navigation }) {
       });
 
       newSocket.on('connect', () => {
-        console.log('WebSocket bağlantısı kuruldu');
+        console.log('WebSocket connected');
       });
 
       newSocket.on('message', (message) => {
@@ -81,13 +83,9 @@ export default function RoomDetailScreen({ route, navigation }) {
         setParticipants(prev => prev.filter(p => p.id !== data.user_id));
       });
 
-      newSocket.on('error', (error) => {
-        console.log('WebSocket hatası:', error);
-      });
-
       setSocket(newSocket);
     } catch (error) {
-      console.log('WebSocket bağlantı hatası:', error);
+      console.log('WebSocket error:', error);
     }
   };
 
@@ -106,19 +104,19 @@ export default function RoomDetailScreen({ route, navigation }) {
 
   const leaveRoom = async () => {
     Alert.alert(
-      'Odadan Ayrıl',
-      'Odadan ayrılmak istediğinize emin misiniz?',
+      t('rooms.leave'),
+      t('rooms.leave_confirm'),
       [
-        { text: 'İptal', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Ayrıl',
+          text: t('rooms.leave'),
           style: 'destructive',
           onPress: async () => {
             try {
               await api.post(`/rooms/${roomId}/leave`);
               navigation.goBack();
             } catch (error) {
-              Alert.alert('Hata', 'Odadan ayrılamadı');
+              Alert.alert(t('common.error'), t('rooms.leave_error'));
             }
           },
         },
@@ -136,7 +134,7 @@ export default function RoomDetailScreen({ route, navigation }) {
   };
 
   const renderMessage = ({ item }) => {
-    const isMe = item.user_id === 'me'; // Burayı gerçek user ID ile karşılaştır
+    const isMe = item.user_id === 'me';
 
     return (
       <View style={[
@@ -196,7 +194,6 @@ export default function RoomDetailScreen({ route, navigation }) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
-      {/* Header */}
       <View style={[styles.header, { borderBottomColor: roomColor }]}>
         <View style={styles.headerLeft}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -208,7 +205,7 @@ export default function RoomDetailScreen({ route, navigation }) {
           <View>
             <Text style={styles.roomName}>{room?.name}</Text>
             <Text style={styles.participantCount}>
-              {participants.length} katılımcı
+              {participants.length} {t('rooms.participants')}
             </Text>
           </View>
         </View>
@@ -217,27 +214,25 @@ export default function RoomDetailScreen({ route, navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* Feature Buttons */}
       <View style={styles.features}>
         <TouchableOpacity style={styles.featureButton}>
           <Ionicons name="videocam" size={20} color={roomColor} />
-          <Text style={[styles.featureText, { color: roomColor }]}>Video</Text>
+          <Text style={[styles.featureText, { color: roomColor }]}>{t('rooms.video')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.featureButton}>
           <Ionicons name="mic" size={20} color={roomColor} />
-          <Text style={[styles.featureText, { color: roomColor }]}>Ses</Text>
+          <Text style={[styles.featureText, { color: roomColor }]}>{t('rooms.audio')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.featureButton, styles.featureButtonDisabled]}>
           <Ionicons name="easel" size={20} color="#666" />
-          <Text style={styles.featureTextDisabled}>Tahta</Text>
+          <Text style={styles.featureTextDisabled}>{t('rooms.whiteboard')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.featureButton, styles.featureButtonDisabled]}>
           <Ionicons name="people" size={20} color="#666" />
-          <Text style={styles.featureTextDisabled}>Katılımcılar</Text>
+          <Text style={styles.featureTextDisabled}>{t('rooms.participants')}</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Participants List (Horizontal) */}
       <View style={styles.participantsContainer}>
         <FlatList
           horizontal
@@ -249,7 +244,6 @@ export default function RoomDetailScreen({ route, navigation }) {
         />
       </View>
 
-      {/* Messages */}
       <FlatList
         ref={flatListRef}
         data={messages}
@@ -259,13 +253,12 @@ export default function RoomDetailScreen({ route, navigation }) {
         onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
       />
 
-      {/* Input */}
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
           value={inputText}
           onChangeText={setInputText}
-          placeholder="Mesaj yaz..."
+          placeholder={t('rooms.message_placeholder')}
           placeholderTextColor="#666"
           multiline
         />
