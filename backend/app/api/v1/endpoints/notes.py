@@ -1,3 +1,5 @@
+from jose import JWTError, jwt
+from app.core.config import settings  # settings'i import et
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
@@ -10,11 +12,32 @@ from app.api.v1.endpoints.auth import oauth2_scheme
 router = APIRouter()
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    # Bu kısmı sonra daha detaylı yapacağız
-    # Şimdilik test için ilk kullanıcıyı alalım
-    user = db.query(User).first()
+    try:
+        # Token'ı decode et - settings'teki SECRET_KEY ve ALGORITHM'i kullan
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Geçersiz token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Geçersiz token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Kullanıcıyı username'e göre bul
+    user = db.query(User).filter(User.username == username).first()
     if not user:
-        raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Kullanıcı bulunamadı",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
     return user
 
 @router.get("/", response_model=List[NoteResponse])

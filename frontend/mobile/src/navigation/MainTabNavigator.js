@@ -8,6 +8,7 @@ import HomeScreen from '../screens/home/HomeScreen';
 import NotesStack from './NotesStack';
 import AIStack from './AIStack';
 import RoomsStack from './RoomsStack';
+import FilesStack from './FilesStack';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
@@ -28,6 +29,8 @@ export default function MainTabNavigator() {
             iconName = focused ? 'flash' : 'flash-outline';
           } else if (route.name === 'Odalar') {
             iconName = focused ? 'people' : 'people-outline';
+          } else if (route.name === 'Dosyalar') {
+            iconName = focused ? 'images' : 'images-outline';
           } else if (route.name === 'Profil') {
             iconName = focused ? 'person' : 'person-outline';
           }
@@ -46,31 +49,12 @@ export default function MainTabNavigator() {
         headerShown: false,
       })}
     >
-      <Tab.Screen 
-        name="Ana Sayfa" 
-        component={HomeScreen} 
-        options={{ title: t('home.title') || 'Ana Sayfa' }}
-      />
-      <Tab.Screen 
-        name="Notlar" 
-        component={NotesStack} 
-        options={{ title: t('notes.title') || 'Notlar' }}
-      />
-      <Tab.Screen 
-        name="AI" 
-        component={AIStack} 
-        options={{ title: t('ai.title') || 'AI' }}
-      />
-      <Tab.Screen 
-        name="Odalar" 
-        component={RoomsStack} 
-        options={{ title: t('rooms.title') || 'Odalar' }}
-      />
-      <Tab.Screen 
-        name="Profil" 
-        component={ProfileScreen} 
-        options={{ title: t('profile.title') || 'Profil' }}
-      />
+      <Tab.Screen name="Ana Sayfa" component={HomeScreen} />
+      <Tab.Screen name="Notlar" component={NotesStack} />
+      <Tab.Screen name="AI" component={AIStack} />
+      <Tab.Screen name="Odalar" component={RoomsStack} />
+      <Tab.Screen name="Dosyalar" component={FilesStack} />
+      <Tab.Screen name="Profil" component={ProfileScreen} />
     </Tab.Navigator>
   );
 }
