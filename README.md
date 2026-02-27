@@ -1,4 +1,4 @@
-# 📚 EduVerse - Yapay Zeka Destekli Öğrenme Platformu
+# 📚 EduVerse - AI-Powered Learning Platform
 
 <div align="center">
   <img src="https://img.shields.io/badge/version-2.0.0-blue.svg" alt="Version 2.0.0">
@@ -6,195 +6,180 @@
   <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome">
   <img src="https://img.shields.io/badge/React_Native-0.76-61dafb.svg" alt="React Native">
   <img src="https://img.shields.io/badge/FastAPI-0.115-009688.svg" alt="FastAPI">
+  <img src="https://img.shields.io/badge/PostgreSQL-14-336791.svg" alt="PostgreSQL">
+  <img src="https://img.shields.io/badge/Docker-✓-2496ED.svg" alt="Docker">
 </div>
 
 <p align="center">
-  <b>Üniversite öğrencileri için geliştirilmiş, yapay zeka destekli, açık kaynak ve kapsamlı öğrenme ekosistemi</b>
+  <b>A comprehensive, open-source learning ecosystem powered by artificial intelligence, designed for university students</b>
 </p>
 
 <p align="center">
-  <a href="#-proje-hakkında">Proje Hakkında</a> •
-  <a href="#-mevcut-özellikler">Özellikler</a> •
-  <a href="#-teknoloji-altyapısı">Teknoloji</a> •
-  <a href="#-hızlı-başlangıç">Başlangıç</a> •
-  <a href="#-ekran-görüntüleri">Ekranlar</a> •
-  <a href="#-katkıda-bulunma">Katkı</a>
+  <a href="#-about-the-project">About</a> •
+  <a href="#-key-features">Features</a> •
+  <a href="#-technology-stack">Tech Stack</a> •
+  <a href="#-quick-start">Quick Start</a> •
+  <a href="#-api-documentation">API</a> •
+  <a href="#-contributing">Contributing</a>
 </p>
 
 ---
 
-## 🎯 Proje Hakkında
+## 🎯 About the Project
 
-**EduVerse**, öğrencilerin tüm öğrenme ihtiyaçlarını tek bir platformda toplamayı hedefleyen kapsamlı bir ekosistemdir. Not alma, yapay zeka destekli ders çalışma, gerçek zamanlı işbirlikli çalışma odaları ve dosya paylaşımı gibi özellikleri bir arada sunar.
+**EduVerse** is a comprehensive ecosystem designed to consolidate all learning needs into a single platform. It combines note-taking, AI-powered study assistance, real-time collaborative study rooms, and file sharing capabilities to transform the educational experience.
 
-### 🌟 Vizyon
-Türkiye'den başlayarak Rusya ve dünyaya açılan, tamamen açık kaynak, topluluk odaklı ve yapay zeka destekli en kapsamlı öğrenme platformunu oluşturmak.
+### 🌟 Vision
+To create the most comprehensive, open-source, community-driven, and AI-powered learning platform that reaches students globally, breaking down educational barriers and fostering collaborative learning.
 
-### 🎓 Hedef Kitle
-- **Üniversite öğrencileri** - Ders notları, grup çalışmaları, sınav hazırlığı
-- **Lise öğrencileri** - Üniversite hazırlık, ders tekrarı
-- **Öğretim üyeleri** - Sınıf yönetimi, ödev takibi
-- **Çalışma grupları** - Ortak projeler, beyin fırtınası
-
----
-
-## ✨ Mevcut Özellikler
-
-### ✅ **Tamamlanan Özellikler**
-
-#### 🔐 **Kullanıcı Yönetimi**
-- [x] Kayıt ve giriş sistemi (JWT tabanlı)
-- [x] Profil görüntüleme ve düzenleme
-- [x] Güvenli oturum yönetimi
-- [x] AsyncStorage ile kalıcı oturum
-
-#### 📝 **Notlar Sistemi**
-- [x] Zengin metin notları oluşturma
-- [x] Notları listeleme, filtreleme
-- [x] Not düzenleme ve silme
-- [x] Otomatik zaman damgası
-- [x] Kategori bazlı filtreleme (Metin/Ses/Çizim)
-
-#### 🤖 **Yapay Zeka Asistanı**
-- [x] OpenRouter API entegrasyonu (Mistral 7B)
-- [x] Genel sohbet asistanı
-- [x] Matematik problemi çözme
-- [x] Konu anlatımı (ilkokul'dan üniversite'ye)
-- [x] Model seçme desteği (Mistral, Gemini, Dolphin)
-- [x] Gerçek zamanlı cevap üretimi
-
-#### 🎥 **Çalışma Odaları**
-- [x] Oda listeleme ve arama
-- [x] Oda oluşturma (public/private/study)
-- [x] Gerçek zamanlı metin sohbeti (WebSocket)
-- [x] Katılımcı listesi ve anlık güncelleme
-- [x] Odaya katılma ve ayrılma
-
-#### 🌍 **Çoklu Dil Desteği**
-- [x] Türkçe (TR)
-- [x] Rusça (RU) 
-- [x] İngilizce (EN)
-- [x] Kalıcı dil seçimi (AsyncStorage)
-- [x] Tüm sayfalarda anlık dil değişimi
-
-#### 📱 **Mobil Arayüz**
-- [x] Modern ve minimalist tasarım
-- [x] Koyu tema (Dark mode)
-- [x] Responsive tasarım
-- [x] Smooth animasyonlar
-- [x] Bottom tab navigasyon
-- [x] Glassmorphism efektleri
+### 🎓 Target Audience
+- **University Students** - Lecture notes, group studies, exam preparation
+- **High School Students** - University preparation, subject revision
+- **Educators** - Class management, assignment tracking, student progress monitoring
+- **Study Groups** - Collaborative projects, brainstorming sessions, resource sharing
 
 ---
 
-## 🚧 **Geliştirilme Aşamasındaki Özellikler**
+## ✨ Key Features
 
-### 🔄 **Sıradaki Hedefler**
+### ✅ **Completed Features**
 
-| Özellik | Durum | Hedef Tarih |
-|---------|-------|-------------|
-| **Gelişmiş Not Editörü** (Word benzeri, LaTeX, tablo) | ⏳ Planlama | Mart 2026 |
-| **Video/Sesli Görüşme** (WebRTC) | ⏳ Araştırma | Nisan 2026 |
-| **Dosya Yükleme ve Yönetimi** | ⏳ Planlama | Mayıs 2026 |
-| **Offline Mod** (Hive/SQLite) | ⏳ Planlama | Haziran 2026 |
-| **Push Bildirimler** | ⏳ Araştırma | Temmuz 2026 |
-| **Arkadaşlık Sistemi** | ⏳ Planlama | Ağustos 2026 |
+#### 🔐 **User Management**
+- [x] JWT-based registration and login system
+- [x] Profile viewing and editing
+- [x] Secure session management
+- [x] Persistent sessions with AsyncStorage
+
+#### 📝 **Notes System**
+- [x] Rich text note creation
+- [x] Note listing and filtering
+- [x] Edit and delete functionality
+- [x] Automatic timestamps
+- [x] Category-based filtering (Text/Drawing/Audio)
+
+#### 🤖 **AI Assistant**
+- [x] OpenRouter API integration (Mistral 7B)
+- [x] General conversation assistant
+- [x] Step-by-step math problem solving
+- [x] Topic explanations (elementary to university level)
+- [x] Model selection support (Mistral, Gemini, Dolphin)
+- [x] Real-time response generation
+
+#### 🎥 **Collaborative Study Rooms**
+- [x] Room listing and search
+- [x] Room creation (public/private/study)
+- [x] Real-time text chat (WebSocket)
+- [x] Live participant list with updates
+- [x] Join and leave functionality
+
+#### 🌍 **Multi-language Support**
+- [x] Turkish (TR)
+- [x] Russian (RU)
+- [x] English (EN)
+- [x] Persistent language preference (AsyncStorage)
+- [x] Real-time language switching across all screens
+
+#### 📱 **Mobile Interface**
+- [x] Modern minimalist design
+- [x] Dark mode support
+- [x] Fully responsive layout
+- [x] Smooth animations
+- [x] Bottom tab navigation
+- [x] Glassmorphism effects
 
 ---
 
-## 🏗️ Teknoloji Altyapısı
+## 🏗️ Technology Stack
 
 ### 🖥️ **Backend (FastAPI)**
 ```
-🐍 Python 3.10+          → Ana dil
+🐍 Python 3.10+          → Core language
 ⚡ FastAPI               → Web framework
-🐘 PostgreSQL            → Ana veritabanı
-🔥 Redis                 → Cache & session
+🐘 PostgreSQL            → Primary database
+🔥 Redis                 → Cache & session management
 🐳 Docker                → Containerization
 🔐 JWT                   → Authentication
-🌐 OpenRouter API        → AI entegrasyonu
-📡 WebSocket             → Gerçek zamanlı iletişim
+🌐 OpenRouter API        → AI integration
+📡 WebSocket             → Real-time communication
 ```
 
 ### 📱 **Frontend (React Native)**
 ```
-⚛️ React Native 0.76     → Mobil framework
-📦 Expo 52               → Geliştirme platformu
-🧭 React Navigation       → Sayfa yönlendirme
-🎨 React Native Paper     → UI componentler
-📡 Axios                 → API istekleri
-🔌 Socket.io-client      → WebSocket bağlantısı
-💾 AsyncStorage          → Yerel veri depolama
-🌍 i18n-js               → Çoklu dil desteği
-📸 Expo Vector Icons     → İkonlar
+⚛️ React Native 0.76     → Mobile framework
+📦 Expo 52               → Development platform
+🧭 React Navigation       → Screen navigation
+🎨 React Native Paper     → UI components
+📡 Axios                 → HTTP requests
+🔌 Socket.io-client      → WebSocket client
+💾 AsyncStorage          → Local data storage
+🌍 i18n-js               → Multi-language support
+📸 Expo Vector Icons     → Icon library
 ```
 
 ---
 
-## 🚀 Hızlı Başlangıç
+## 🚀 Quick Start
 
-### 📋 Gereksinimler
+### 📋 Prerequisites
 - Node.js 18+
 - Python 3.10+
 - Docker & Docker Compose
 - PostgreSQL 14+
 - Redis 7+
 - Expo CLI
-- Android Studio / Xcode (opsiyonel)
+- Android Studio / Xcode (optional)
 
-### 🔧 Kurulum Adımları
+### 🔧 Installation Steps
 
-#### 1. Repoyu klonlayın
+#### 1. Clone the repository
 ```bash
 git clone https://github.com/yourusername/eduverse.git
 cd eduverse
 ```
 
-#### 2. Backend kurulumu
+#### 2. Backend setup
 ```bash
 cd backend
 
-# Python virtual environment oluştur
+# Create Python virtual environment
 python -m venv venv
 source venv/bin/activate  # Linux/Mac
 # venv\Scripts\activate  # Windows
 
-# Bağımlılıkları yükle
+# Install dependencies
 pip install -r requirements.txt
 
-# Docker ile PostgreSQL ve Redis'i başlat
+# Start PostgreSQL and Redis with Docker
 docker-compose up -d
 
-# Veritabanını migrate et
+# Run database migrations
 alembic upgrade head
 
-# Backend'i başlat
+# Start the backend server
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-#### 3. Frontend kurulumu
+#### 3. Frontend setup
 ```bash
 cd frontend/mobile
 
-# Bağımlılıkları yükle
+# Install dependencies
 npm install
-# veya
-yarn install
 
-# Environment dosyasını oluştur
+# Create environment file
 cp .env.example .env
-# .env dosyasını düzenle (API_URL vs.)
+# Edit .env file (set API_URL etc.)
 
-# Uygulamayı başlat (web)
+# Start the application (web)
 npx expo start --web
 
-# veya mobil için
+# For mobile
 npx expo start --tunnel
 ```
 
-### 🐳 Docker ile Tek Komutta Kurulum
+### 🐳 One-command Docker Setup
 ```bash
-# Tüm projeyi Docker ile ayağa kaldır
+# Start the entire project with Docker
 docker-compose up -d
 
 # Backend: http://localhost:8000
@@ -203,74 +188,60 @@ docker-compose up -d
 
 ---
 
-## 📸 Ekran Görüntüleri
+## 📊 API Documentation
 
-<div align="center">
-  <img src="https://via.placeholder.com/300x600.png?text=Login+Screen" width="200" alt="Login Screen">
-  <img src="https://via.placeholder.com/300x600.png?text=Home+Screen" width="200" alt="Home Screen">
-  <img src="https://via.placeholder.com/300x600.png?text=Notes+Screen" width="200" alt="Notes Screen">
-  <img src="https://via.placeholder.com/300x600.png?text=AI+Chat" width="200" alt="AI Chat">
-</div>
+API documentation is available at `http://localhost:8000/docs` (Swagger UI).
 
-<div align="center">
-  <img src="https://via.placeholder.com/300x600.png?text=Rooms+Screen" width="200" alt="Rooms Screen">
-  <img src="https://via.placeholder.com/300x600.png?text=Room+Chat" width="200" alt="Room Chat">
-  <img src="https://via.placeholder.com/300x600.png?text=Profile+Screen" width="200" alt="Profile Screen">
-  <img src="https://via.placeholder.com/300x600.png?text=Language+Select" width="200" alt="Language Select">
-</div>
+### 🔑 Main Endpoints
 
----
-
-## 📊 API Dökümantasyonu
-
-API dökümantasyonuna `http://localhost:8000/docs` adresinden erişebilirsiniz (Swagger UI).
-
-### 🔑 Ana Endpoint'ler
-
-| Metot | Endpoint | Açıklama |
-|-------|----------|----------|
+| Method | Endpoint | Description | Authorization |
+|--------|----------|-------------|---------------|
 | **Auth** |
-| POST | `/api/v1/auth/login` | Kullanıcı girişi |
-| POST | `/api/v1/auth/register` | Yeni kayıt |
-| GET | `/api/v1/auth/me` | Profil bilgisi |
+| POST | `/api/v1/auth/register` | User registration | ❌ |
+| POST | `/api/v1/auth/login` | User login | ❌ |
+| GET | `/api/v1/auth/me` | Profile information | ✅ |
 | **Notes** |
-| GET | `/api/v1/notes/` | Notları listele |
-| POST | `/api/v1/notes/` | Not oluştur |
-| PUT | `/api/v1/notes/{id}` | Not güncelle |
-| DELETE | `/api/v1/notes/{id}` | Not sil |
+| GET | `/api/v1/notes/` | List all notes | ✅ |
+| POST | `/api/v1/notes/` | Create a new note | ✅ |
+| PUT | `/api/v1/notes/{id}` | Update a note | ✅ |
+| DELETE | `/api/v1/notes/{id}` | Delete a note | ✅ |
 | **Rooms** |
-| GET | `/api/v1/rooms/` | Odaları listele |
-| POST | `/api/v1/rooms/` | Oda oluştur |
-| POST | `/api/v1/rooms/{id}/join` | Odaya katıl |
-| WebSocket | `/api/v1/rooms/ws/{id}` | Sohbet bağlantısı |
+| GET | `/api/v1/rooms/` | List all rooms | ✅ |
+| POST | `/api/v1/rooms/` | Create a new room | ✅ |
+| POST | `/api/v1/rooms/{id}/join` | Join a room | ✅ |
+| WebSocket | `/api/v1/rooms/ws/{id}` | Chat connection | ✅ |
+| **Files** |
+| POST | `/api/v1/files/upload` | Upload a file | ✅ |
+| GET | `/api/v1/files/` | List user files | ✅ |
+| DELETE | `/api/v1/files/{id}` | Delete a file | ✅ |
 | **AI** |
-| POST | `/api/v1/ai/chat` | AI sohbet |
-| POST | `/api/v1/ai/explain` | Konu anlatımı |
-| POST | `/api/v1/ai/solve-math` | Matematik çözümü |
-
-Detaylı API dökümantasyonu için [API.md](API.md) dosyasına bakın.
+| POST | `/api/v1/ai/chat` | AI chat | ✅ |
+| POST | `/api/v1/ai/explain` | Topic explanation | ✅ |
+| POST | `/api/v1/ai/solve-math` | Math problem solving | ✅ |
+| POST | `/api/v1/ai/generate-quiz` | Quiz generation | ✅ |
+| POST | `/api/v1/ai/code-assist` | Code assistance | ✅ |
 
 ---
 
-## 🧪 Test
+## 🧪 Testing
 
-### Backend Testleri
+### Backend Tests
 ```bash
 cd backend
 pytest tests/ -v
 ```
 
-### Frontend Testleri
+### Frontend Tests
 ```bash
 cd frontend/mobile
 npm test
-# veya
+# or
 yarn test
 ```
 
 ---
 
-## 📦 Dağıtım
+## 📦 Deployment
 
 ### Backend (Production)
 ```bash
@@ -284,57 +255,80 @@ docker run -p 8000:8000 eduverse-backend
 cd frontend/mobile
 # Android APK
 eas build -p android --profile preview
-# veya
+# or
 cd android && ./gradlew assembleRelease
 ```
 
 ---
 
-## 🤝 Katkıda Bulunma
+## 🤝 Contributing
 
-EduVerse açık kaynak bir projedir ve katkılarınızı memnuniyetle karşılar!
+EduVerse is an open-source project and welcomes contributions!
 
-### Nasıl Katkıda Bulunabilirsiniz?
+### How to Contribute?
 
-1. 🍴 Repoyu fork edin
-2. 🌿 Yeni bir branch oluşturun (`git checkout -b feature/amazing-feature`)
-3. 💾 Değişikliklerinizi commit edin (`git commit -m 'feat: Add amazing feature'`)
-4. 📤 Branch'inizi push edin (`git push origin feature/amazing-feature`)
-5. 🔃 Pull Request oluşturun
+1. 🍴 Fork the repository
+2. 🌿 Create a new branch (`git checkout -b feature/amazing-feature`)
+3. 💾 Commit your changes (`git commit -m 'feat: Add amazing feature'`)
+4. 📤 Push to the branch (`git push origin feature/amazing-feature`)
+5. 🔃 Open a Pull Request
 
-### 🌟 Katkıda Bulunabileceğiniz Alanlar
-- 🐛 Bug fix'leri
-- ✨ Yeni özellikler
-- 📚 Dokümantasyon iyileştirmeleri
-- 🌍 Yeni dil çevirileri
-- 🎨 UI/UX iyileştirmeleri
-- ⚡ Performans optimizasyonları
+### 🌟 Contribution Areas
+- 🐛 Bug fixes
+- ✨ New features
+- 📚 Documentation improvements
+- 🌍 New language translations
+- 🎨 UI/UX enhancements
+- ⚡ Performance optimizations
 
-### 📝 Commit Mesajı Formatı
+### 📝 Commit Message Format
 ```
-feat: Yeni özellik eklendi
-fix: Hata düzeltildi
-docs: Dokümantasyon güncellendi
-style: Kod formatı düzeltildi
-refactor: Kod yeniden düzenlendi
-test: Testler eklendi
-chore: Bakım çalışması
+feat: Add new feature
+fix: Bug fix
+docs: Documentation update
+style: Code formatting
+refactor: Code restructuring
+test: Add tests
+chore: Maintenance
 ```
 
 ---
 
-## 📄 Lisans
+## 📄 License
 
-Bu proje **MIT Lisansı** ile lisanslanmıştır. Detaylar için [LICENSE](LICENSE) dosyasına bakın.
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🌟 İletişim
+## 🌟 Contact
 
-- **Website:** [eduverse.app](https://eduverse.app) (coming soon)
-- **Discord:** [EduVerse Topluluğu](https://discord.gg/eduverse)
-- **Twitter:** [@eduverse_app](https://twitter.com/eduverse_app)
+- **Website:** [eduverse.app](https://eduverse.app)
+- **GitHub:** [github.com/eduverse](https://github.com/eduverse)
+- **Discord:** [EduVerse Community](https://discord.gg/eduverse)
 - **Email:** hello@eduverse.app
+
+---
+
+## 📊 Project Status
+
+| Metric | Value |
+|--------|-------|
+| ⭐ Stars | 0 (new) |
+| 🍴 Forks | 0 |
+| 🐛 Open Issues | 0 |
+| ✅ Closed Issues | 0 |
+| 🔀 Pull Requests | 0 |
+| 👥 Contributors | 1 |
+| 📅 Last Updated | February 2026 |
+
+---
+
+## 🙏 Acknowledgments
+
+- **FastAPI** team for the excellent framework
+- **React Native** community
+- **OpenRouter** team for free AI API access
+- All **contributors** and **users**
 
 ---
 
@@ -342,31 +336,12 @@ Bu proje **MIT Lisansı** ile lisanslanmıştır. Detaylar için [LICENSE](LICEN
   <sub>Built with ❤️ for students, by students</sub>
   <br>
   <sub>© 2026 EduVerse. All rights reserved.</sub>
+  <br>
+  <a href="https://github.com/eduverse/eduverse">
+    <img src="https://img.shields.io/github/stars/eduverse/eduverse?style=social" alt="GitHub Stars">
+  </a>
 </div>
 
 ---
 
-## 📊 Proje Durumu
-
-| Metric | Değer |
-|--------|-------|
-| ⭐ Stars | 0 (yeni) |
-| 🍴 Forks | 0 |
-| 🐛 Açık Issue | 0 |
-| ✅ Kapalı Issue | 0 |
-| 🔀 Pull Request | 0 |
-| 👥 Katkıda Bulunanlar | 1 |
-| 📅 Son Güncelleme | Şubat 2026 |
-
----
-
-## 🙏 Teşekkürler
-
-- **FastAPI** ekibine harika framework için
-- **React Native** topluluğuna
-- **OpenRouter** ekibine ücretsiz AI API desteği için
-- Tüm **katkıda bulunanlara** ve **kullanıcılara**
-
----
-
-**⭐ Repoyu beğendiyseniz yıldız vermeyi unutmayın!** ⭐
+**⭐ If you like this project, don't forget to give it a star!** ⭐
