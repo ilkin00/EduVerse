@@ -8,11 +8,14 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  Image,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLanguage } from '../../context/LanguageContext';
 import api from '../../services/api';
 import { NoteTypes } from '../../models/NoteModel';
+import { Audio } from 'expo-av';
 
 export default function NotesScreen({ navigation }) {
   const { t } = useLanguage();
@@ -20,6 +23,8 @@ export default function NotesScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [selectedType, setSelectedType] = useState('all');
   const [menuVisible, setMenuVisible] = useState(false);
+  const [playingAudio, setPlayingAudio] = useState(null);
+  const [sound, setSound] = useState(null);
 
   useEffect(() => {
     loadNotes();
@@ -28,15 +33,26 @@ export default function NotesScreen({ navigation }) {
       loadNotes();
     });
     
-    return unsubscribe;
-  }, [navigation]);
+    return () => {
+      if (sound) {
+        sound.unloadAsync();
+      }
+    };
+  }, [navigation, selectedType]);
 
   const loadNotes = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/notes/');
+      const url = selectedType === 'all' 
+        ? '/notes/' 
+        : `/notes/?note_type=${selectedType}`;
+      
+      console.log('📥 Notlar yükleniyor:', url);
+      const response = await api.get(url);
       setNotes(response.data);
+      console.log(`✅ ${response.data.length} not yüklendi`);
     } catch (error) {
+      console.error('Not yükleme hatası:', error);
       Alert.alert('Hata', 'Notlar yüklenemedi');
     } finally {
       setLoading(false);
@@ -65,9 +81,67 @@ export default function NotesScreen({ navigation }) {
     );
   };
 
-  const getFilteredNotes = () => {
-    if (selectedType === 'all') return notes;
-    return notes.filter(note => note.note_type === selectedType);
+  const playAudio = async (audioData) => {
+    try {
+      if (playingAudio === audioData.id) {
+        // Aynı ses çalıyorsa durdur
+        if (sound) {
+          await sound.stopAsync();
+          setPlayingAudio(null);
+        }
+        return;
+      }
+
+      // Önceki sesi durdur
+      if (sound) {
+        await sound.unloadAsync();
+      }
+
+      // Metadata'dan fileId'yi al
+      const metadata = JSON.parse(audioData.content);
+      
+      // WEB ve MOBİL için farklı yöntem
+      if (Platform.OS === 'web') {
+        // Web'de direkt URL'den çal
+        const audioUrl = `http://localhost:8000/api/v1/files/download/${metadata.fileId}`;
+        
+        const { sound: newSound } = await Audio.Sound.createAsync(
+          { uri: audioUrl },
+          { shouldPlay: true }
+        );
+        
+        setSound(newSound);
+        setPlayingAudio(audioData.id);
+        
+        newSound.setOnPlaybackStatusUpdate((status) => {
+          if (status.didJustFinish) {
+            setPlayingAudio(null);
+          }
+        });
+      } else {
+        // Mobil'de indir ve çal (eski yöntem)
+        // Bu kısmı şimdilik basit tutalım
+        const audioUrl = `http://localhost:8000/api/v1/files/download/${metadata.fileId}`;
+        
+        const { sound: newSound } = await Audio.Sound.createAsync(
+          { uri: audioUrl },
+          { shouldPlay: true }
+        );
+        
+        setSound(newSound);
+        setPlayingAudio(audioData.id);
+        
+        newSound.setOnPlaybackStatusUpdate((status) => {
+          if (status.didJustFinish) {
+            setPlayingAudio(null);
+          }
+        });
+      }
+      
+    } catch (error) {
+      console.error('Ses çalma hatası:', error);
+      Alert.alert('Hata', 'Ses çalınamadı');
+    }
   };
 
   const getNoteIcon = (noteType) => {
@@ -88,51 +162,99 @@ export default function NotesScreen({ navigation }) {
     }
   };
 
-  const renderNote = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.noteCard}
-      onPress={() => {
-        if (item.note_type === NoteTypes.TEXT) {
-          navigation.navigate('NoteEditor', {
-            noteId: item.id,
-            initialTitle: item.title,
-            initialContent: item.content,
-          });
-        } else if (item.note_type === NoteTypes.DRAWING) {
-          navigation.navigate('DrawingEditor', {
-            noteId: item.id,
-            initialTitle: item.title,
-            drawingData: item.content,
-          });
-        }
-      }}
-    >
-      <View style={[styles.noteIcon, { backgroundColor: `${getNoteColor(item.note_type)}20` }]}>
-        <Ionicons name={getNoteIcon(item.note_type)} size={24} color={getNoteColor(item.note_type)} />
-      </View>
-      
-      <View style={styles.noteContent}>
-        <Text style={styles.noteTitle}>{item.title || 'Başlıksız'}</Text>
-        <Text style={styles.notePreview} numberOfLines={2}>
-          {item.note_type === NoteTypes.DRAWING ? '✏️ Çizim notu' : (item.content || '')}
-        </Text>
-        <Text style={styles.noteTime}>
-          {new Date(item.updated_at || item.created_at).toLocaleDateString()}
-        </Text>
-      </View>
-
+  const renderNote = ({ item }) => {
+    const isDrawing = item.note_type === NoteTypes.DRAWING;
+    const isAudio = item.note_type === NoteTypes.AUDIO;
+    
+    let audioMetadata = null;
+    if (isAudio && item.content) {
+      try {
+        audioMetadata = JSON.parse(item.content);
+      } catch (e) {}
+    }
+    
+    return (
       <TouchableOpacity 
-        style={styles.noteMenu}
-        onPress={() => deleteNote(item.id)}
+        style={styles.noteCard}
+        onPress={() => {
+          if (item.note_type === NoteTypes.TEXT) {
+            navigation.navigate('NoteEditor', {
+              noteId: item.id,
+              initialTitle: item.title,
+              initialContent: item.content,
+            });
+          } else if (item.note_type === NoteTypes.DRAWING) {
+            navigation.navigate('DrawingEditor', {
+              noteId: item.id,
+              initialTitle: item.title,
+            });
+          } else if (item.note_type === NoteTypes.AUDIO) {
+            navigation.navigate('AudioEditor', {
+              noteId: item.id,
+              initialTitle: item.title,
+              initialContent: item.content,
+            });
+          }
+        }}
       >
-        <Ionicons name="trash-outline" size={20} color="#EF4444" />
+        <View style={[styles.noteIcon, { backgroundColor: `${getNoteColor(item.note_type)}20` }]}>
+          <Ionicons name={getNoteIcon(item.note_type)} size={24} color={getNoteColor(item.note_type)} />
+        </View>
+        
+        <View style={styles.noteContent}>
+          <Text style={styles.noteTitle}>{item.title || 'Başlıksız'}</Text>
+          
+          {isDrawing ? (
+            <Image 
+              source={{ uri: `data:image/png;base64,${item.content}` }}
+              style={styles.drawingThumbnail}
+              resizeMode="cover"
+            />
+          ) : isAudio ? (
+            <View style={styles.audioContainer}>
+              <TouchableOpacity onPress={() => playAudio(item)}>
+                <Ionicons 
+                  name={playingAudio === item.id ? 'pause-circle' : 'play-circle'} 
+                  size={40} 
+                  color={playingAudio === item.id ? '#EF4444' : '#EC4899'} 
+                />
+              </TouchableOpacity>
+              <View style={styles.audioInfo}>
+                <Text style={styles.audioDuration}>
+                  {audioMetadata ? `${Math.floor(audioMetadata.duration / 60)}:${(audioMetadata.duration % 60).toString().padStart(2, '0')}` : '00:00'}
+                </Text>
+                <Text style={styles.audioSize}>
+                  {audioMetadata ? `${(audioMetadata.fileSize / 1024 / 1024).toFixed(1)} MB` : ''}
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <Text style={styles.notePreview} numberOfLines={2}>
+              {item.content || ''}
+            </Text>
+          )}
+          
+          <Text style={styles.noteTime}>
+            {new Date(item.created_at).toLocaleDateString('tr-TR')}
+          </Text>
+        </View>
+
+        <TouchableOpacity 
+          style={styles.noteMenu}
+          onPress={() => deleteNote(item.id)}
+        >
+          <Ionicons name="trash-outline" size={20} color="#EF4444" />
+        </TouchableOpacity>
       </TouchableOpacity>
-    </TouchableOpacity>
-  );
+    );
+  };
+
+  const handleTypeChange = (type) => {
+    setSelectedType(type);
+  };
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Notlarım</Text>
         <TouchableOpacity 
@@ -143,11 +265,10 @@ export default function NotesScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* Tip Seçici Butonlar */}
       <View style={styles.typeSelector}>
         <TouchableOpacity
           style={[styles.typeButton, selectedType === 'all' && styles.typeButtonActive]}
-          onPress={() => setSelectedType('all')}
+          onPress={() => handleTypeChange('all')}
         >
           <Ionicons name="apps" size={20} color={selectedType === 'all' ? '#6366F1' : '#888'} />
           <Text style={[styles.typeText, selectedType === 'all' && styles.typeTextActive]}>Tümü</Text>
@@ -155,7 +276,7 @@ export default function NotesScreen({ navigation }) {
 
         <TouchableOpacity
           style={[styles.typeButton, selectedType === NoteTypes.TEXT && styles.typeButtonActive]}
-          onPress={() => setSelectedType(NoteTypes.TEXT)}
+          onPress={() => handleTypeChange(NoteTypes.TEXT)}
         >
           <Ionicons name="document-text" size={20} color={selectedType === NoteTypes.TEXT ? '#6366F1' : '#888'} />
           <Text style={[styles.typeText, selectedType === NoteTypes.TEXT && styles.typeTextActive]}>Metin</Text>
@@ -163,7 +284,7 @@ export default function NotesScreen({ navigation }) {
 
         <TouchableOpacity
           style={[styles.typeButton, selectedType === NoteTypes.DRAWING && styles.typeButtonActive]}
-          onPress={() => setSelectedType(NoteTypes.DRAWING)}
+          onPress={() => handleTypeChange(NoteTypes.DRAWING)}
         >
           <Ionicons name="brush" size={20} color={selectedType === NoteTypes.DRAWING ? '#8B5CF6' : '#888'} />
           <Text style={[styles.typeText, selectedType === NoteTypes.DRAWING && styles.typeTextActive]}>Çizim</Text>
@@ -171,21 +292,20 @@ export default function NotesScreen({ navigation }) {
 
         <TouchableOpacity
           style={[styles.typeButton, selectedType === NoteTypes.AUDIO && styles.typeButtonActive]}
-          onPress={() => setSelectedType(NoteTypes.AUDIO)}
+          onPress={() => handleTypeChange(NoteTypes.AUDIO)}
         >
           <Ionicons name="mic" size={20} color={selectedType === NoteTypes.AUDIO ? '#EC4899' : '#888'} />
           <Text style={[styles.typeText, selectedType === NoteTypes.AUDIO && styles.typeTextActive]}>Ses</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Not Listesi */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366F1" />
         </View>
       ) : (
         <FlatList
-          data={getFilteredNotes()}
+          data={notes}
           renderItem={renderNote}
           keyExtractor={item => item.id.toString()}
           contentContainerStyle={styles.listContent}
@@ -198,7 +318,6 @@ export default function NotesScreen({ navigation }) {
         />
       )}
 
-      {/* Seçenek Menüsü */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -249,8 +368,7 @@ export default function NotesScreen({ navigation }) {
               style={styles.menuItem}
               onPress={() => {
                 setMenuVisible(false);
-                // Ses notu sayfası henüz yok
-                Alert.alert('Bilgi', 'Sesli not yakında eklenecek');
+                navigation.navigate('AudioEditor', { noteType: NoteTypes.AUDIO });
               }}
             >
               <View style={[styles.menuIcon, { backgroundColor: '#EC489920' }]}>
@@ -364,6 +482,33 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 4,
   },
+  drawingThumbnail: {
+    width: '100%',
+    height: 100,
+    borderRadius: 8,
+    marginVertical: 8,
+    backgroundColor: '#f0f0f0',
+  },
+  audioContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0A0A0F',
+    borderRadius: 8,
+    padding: 8,
+    marginVertical: 8,
+  },
+  audioInfo: {
+    marginLeft: 12,
+  },
+  audioDuration: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  audioSize: {
+    color: '#888',
+    fontSize: 12,
+  },
   notePreview: {
     color: '#888',
     fontSize: 14,
@@ -372,6 +517,7 @@ const styles = StyleSheet.create({
   noteTime: {
     color: '#666',
     fontSize: 12,
+    marginTop: 4,
   },
   noteMenu: {
     padding: 8,
@@ -386,7 +532,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 16,
   },
-  // Modal stilleri
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -397,7 +542,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     padding: 20,
-    paddingBottom: 30,
   },
   modalTitle: {
     color: '#fff',
@@ -413,8 +557,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
   },
   menuIcon: {
     width: 48,
@@ -438,13 +580,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   cancelButton: {
-    marginTop: 10,
     padding: 16,
     backgroundColor: '#0A0A0F',
     borderRadius: 12,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    marginTop: 10,
   },
   cancelButtonText: {
     color: '#EF4444',

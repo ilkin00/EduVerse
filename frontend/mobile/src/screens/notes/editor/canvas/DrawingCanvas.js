@@ -1,11 +1,11 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
   PanResponder,
   Dimensions,
 } from 'react-native';
-import { Svg, Path, G } from 'react-native-svg';
+import { Svg, Path, G, Rect } from 'react-native-svg';
 
 const DrawingCanvas = ({ 
   strokes = [], 
@@ -14,25 +14,36 @@ const DrawingCanvas = ({
   penWidth = 2,
   paperType = 'blank',
   paperColor = '#ffffff',
+  editable = true,
 }) => {
   const [currentStrokes, setCurrentStrokes] = useState(strokes);
   const [currentPath, setCurrentPath] = useState('');
   const [isDrawing, setIsDrawing] = useState(false);
+  
+  const { width, height } = Dimensions.get('window');
+
+  useEffect(() => {
+    console.log('🎨 Canvas strokes güncellendi:', strokes.length);
+    setCurrentStrokes(strokes);
+  }, [strokes]);
 
   const panResponder = PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: () => true,
+    onStartShouldSetPanResponder: () => editable,
+    onMoveShouldSetPanResponder: () => editable,
     onPanResponderGrant: (evt) => {
+      if (!editable) return;
       const { locationX, locationY } = evt.nativeEvent;
+      console.log('✏️ Çizim başladı:', locationX, locationY);
       setIsDrawing(true);
       setCurrentPath(`M${locationX},${locationY}`);
     },
     onPanResponderMove: (evt) => {
-      if (!isDrawing) return;
+      if (!editable || !isDrawing) return;
       const { locationX, locationY } = evt.nativeEvent;
       setCurrentPath(prev => `${prev} L${locationX},${locationY}`);
     },
     onPanResponderRelease: () => {
+      if (!editable) return;
       if (currentPath) {
         const newStroke = {
           path: currentPath,
@@ -40,6 +51,7 @@ const DrawingCanvas = ({
           width: penWidth,
         };
         const updatedStrokes = [...currentStrokes, newStroke];
+        console.log('✅ Çizim bitti, toplam stroke:', updatedStrokes.length);
         setCurrentStrokes(updatedStrokes);
         onStrokesChange?.(updatedStrokes);
         setCurrentPath('');
@@ -49,11 +61,10 @@ const DrawingCanvas = ({
   });
 
   const renderPaper = () => {
-    const { width, height } = Dimensions.get('window');
+    const lines = [];
     
     if (paperType === 'grid') {
       const gridSize = 20;
-      const lines = [];
       for (let i = 0; i < width; i += gridSize) {
         lines.push(
           <Path
@@ -81,7 +92,6 @@ const DrawingCanvas = ({
     
     if (paperType === 'lined') {
       const lineHeight = 20;
-      const lines = [];
       for (let i = lineHeight; i < height; i += lineHeight) {
         lines.push(
           <Path
@@ -104,8 +114,17 @@ const DrawingCanvas = ({
       style={[styles.container, { backgroundColor: paperColor }]}
       {...panResponder.panHandlers}
     >
-      <Svg style={styles.canvas}>
-        {/* Arkaplan kağıt deseni */}
+      <Svg style={styles.canvas} width={width} height={height}>
+        {/* Arkaplan */}
+        <Rect
+          x="0"
+          y="0"
+          width={width}
+          height={height}
+          fill={paperColor}
+        />
+        
+        {/* Kağıt deseni */}
         <G>
           {renderPaper()}
         </G>

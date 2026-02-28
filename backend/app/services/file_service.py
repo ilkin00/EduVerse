@@ -1,9 +1,13 @@
 import os
+import base64
 import aiofiles
 from pathlib import Path
 from fastapi import UploadFile, HTTPException
 from PIL import Image
 import uuid
+import imghdr
+from io import BytesIO
+from typing import Optional, Tuple
 
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -27,6 +31,7 @@ ALLOWED_EXTENSIONS = {
 }
 
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
+MAX_BASE64_SIZE = 10 * 1024 * 1024  # 10 MB (base64)
 
 def get_file_type(filename: str) -> str:
     """Dosya uzantısına göre tip belirle"""
@@ -36,6 +41,79 @@ def get_file_type(filename: str) -> str:
         if ext in extensions:
             return file_type
     return "other"
+
+class Base64Validator:
+    """Base64 resim validator"""
+    
+    @staticmethod
+    def validate_base64(base64_string: str) -> Tuple[bool, Optional[str], Optional[float]]:
+        """
+        Base64 string'i validate et
+        Returns: (is_valid, format, size_kb)
+        """
+        try:
+            # data:image/png;base64, kısmını temizle
+            if ',' in base64_string:
+                header, data = base64_string.split(',', 1)
+                # Format kontrolü
+                if 'image' in header:
+                    img_format = header.split(';')[0].split('/')[-1]
+                else:
+                    img_format = 'png'
+            else:
+                data = base64_string
+                img_format = 'png'
+            
+            # Decode et
+            image_data = base64.b64decode(data)
+            
+            # Boyut kontrolü
+            size_kb = len(image_data) / 1024
+            if size_kb > (MAX_BASE64_SIZE / 1024):
+                return False, None, size_kb
+            
+            # Format kontrolü
+            detected_format = imghdr.what(None, h=image_data)
+            if detected_format not in ['png', 'jpeg', 'gif', 'webp']:
+                return False, detected_format, size_kb
+            
+            return True, detected_format or img_format, size_kb
+            
+        except Exception as e:
+            print(f"Base64 validation error: {e}")
+            return False, None, 0
+    
+    @staticmethod
+    def get_image_info(base64_string: str) -> dict:
+        """Base64 resim hakkında bilgi döndür"""
+        try:
+            if ',' in base64_string:
+                header, data = base64_string.split(',', 1)
+            else:
+                data = base64_string
+            
+            image_data = base64.b64decode(data)
+            size_kb = len(image_data) / 1024
+            
+            # PIL ile açmayı dene
+            try:
+                img = Image.open(BytesIO(image_data))
+                width, height = img.size
+                img_format = img.format.lower()
+            except:
+                width, height = 0, 0
+                img_format = imghdr.what(None, h=image_data)
+            
+            return {
+                "size_kb": round(size_kb, 2),
+                "size_mb": round(size_kb / 1024, 2),
+                "format": img_format,
+                "width": width,
+                "height": height,
+                "is_base64": True
+            }
+        except Exception as e:
+            return {"error": str(e)}
 
 class FileService:
     @staticmethod
@@ -135,3 +213,7 @@ class FileService:
         except Exception as e:
             print(f"Dosya silinemedi: {e}")
         return False
+
+# Singleton instance
+base64_validator = Base64Validator()
+file_service = FileService()

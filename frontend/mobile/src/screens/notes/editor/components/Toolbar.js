@@ -58,7 +58,7 @@ const Toolbar = ({
   const tools = [
     { id: 'pen', name: 'Kalem', icon: 'create-outline', color: '#6366F1' },
     { id: 'highlighter', name: 'Fosforlu', icon: 'color-fill-outline', color: '#10B981' },
-    { id: 'eraser', name: 'Silgi', icon: 'trash-outline', color: '#EF4444' }, // erase-outline yerine trash-outline
+    { id: 'eraser', name: 'Silgi', icon: 'trash-outline', color: '#EF4444' },
     { id: 'text', name: 'Yazı', icon: 'text-outline', color: '#8B5CF6' },
     { id: 'formula', name: 'Formül', icon: 'calculator-outline', color: '#EC4899' },
   ];

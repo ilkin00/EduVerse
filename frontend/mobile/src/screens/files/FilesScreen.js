@@ -20,7 +20,6 @@ const { width } = Dimensions.get('window');
 const imageSize = (width - 60) / 3;
 
 export default function FilesScreen({ navigation }) {
-  const { t } = useLanguage();
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -37,11 +36,9 @@ export default function FilesScreen({ navigation }) {
   const loadFiles = async () => {
     try {
       setLoading(true);
-      // GET /api/v1/files/ endpoint'inden tüm dosyaları al
       const response = await api.get('/files/');
       setFiles(response.data);
     } catch (error) {
-      console.error('Dosya yükleme hatası:', error);
       Alert.alert('Hata', 'Dosyalar yüklenemedi');
     } finally {
       setLoading(false);
@@ -59,7 +56,6 @@ export default function FilesScreen({ navigation }) {
           style: 'destructive',
           onPress: async () => {
             try {
-              // DELETE /api/v1/files/{file_id}
               await api.delete(`/files/${fileId}`);
               loadFiles();
             } catch (error) {
@@ -73,7 +69,6 @@ export default function FilesScreen({ navigation }) {
 
   const downloadFile = async (file) => {
     try {
-      // GET /api/v1/files/download/{file_id}
       const fileUri = `${FileSystem.documentDirectory}${file.filename}`;
       const downloadResumable = FileSystem.createDownloadResumable(
         file.file_path,
