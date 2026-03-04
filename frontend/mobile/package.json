@@ -26,6 +26,7 @@
     "react-native": "0.76.6",
     "react-native-canvas": "^0.1.40",
     "react-native-color-picker": "^0.6.0",
+    "react-native-dotenv": "^3.4.11",
     "react-native-fs": "^2.20.0",
     "react-native-gesture-handler": "~2.20.2",
     "react-native-i18n": "^2.0.15",

@@ -1,43 +1,47 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { WS_URL } from '@env';  // .env'den al
 
-const SOCKET_URL = 'http://localhost:8000';
+console.log('🌍 WebSocket URL:', WS_URL);  // Doğru geldiğini kontrol et
 
-let socket = null;
+let chatSocket = null;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
 
-export const initWebSocket = async (userId, onMessage) => {
+export const initChatWebSocket = async (userId, onMessage) => {
   try {
     const token = await AsyncStorage.getItem('@token');
     
-    socket = new WebSocket(`${SOCKET_URL}/api/v1/ws/chat?token=${token}`);
+    if (chatSocket) {
+      chatSocket.close();
+    }
     
-    socket.onopen = () => {
+    chatSocket = new WebSocket(`${WS_URL}/api/v1/ws/chat?token=${token}`);
+    
+    chatSocket.onopen = () => {
       console.log('✅ WebSocket bağlandı');
+      reconnectAttempts = 0;
     };
     
-    socket.onmessage = (event) => {
+    chatSocket.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      console.log('📩 Mesaj geldi:', data);
+      console.log('📩 WebSocket mesajı:', data);
       
       if (data.type === 'private_message') {
         onMessage(data);
-      } else if (data.type === 'user_status') {
-        console.log('👤 Kullanıcı durumu:', data);
-      } else if (data.type === 'typing') {
-        console.log('✍️ Yazıyor:', data);
       }
     };
     
-    socket.onerror = (error) => {
+    chatSocket.onerror = (error) => {
       console.log('🔴 WebSocket hatası:', error);
     };
     
-    socket.onclose = () => {
+    chatSocket.onclose = () => {
       console.log('❌ WebSocket bağlantısı kapandı');
-      setTimeout(() => {
-        if (!socket || socket.readyState === WebSocket.CLOSED) {
-          initWebSocket(userId, onMessage);
-        }
-      }, 5000);
+      
+      if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+        reconnectAttempts++;
+        setTimeout(() => initChatWebSocket(userId, onMessage), 3000);
+      }
     };
     
     return true;
@@ -48,33 +52,19 @@ export const initWebSocket = async (userId, onMessage) => {
 };
 
 export const sendPrivateMessage = (receiverId, content) => {
-  if (socket && socket.readyState === WebSocket.OPEN) {
-    const message = {
+  if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+    chatSocket.send(JSON.stringify({
       type: 'private_message',
       receiver_id: receiverId,
       content: content,
       timestamp: new Date().toISOString()
-    };
-    socket.send(JSON.stringify(message));
-  }
-};
-
-export const sendTyping = (receiverId, isTyping) => {
-  if (socket && socket.readyState === WebSocket.OPEN) {
-    const message = {
-      type: 'typing',
-      receiver_id: receiverId,
-      is_typing: isTyping
-    };
-    socket.send(JSON.stringify(message));
+    }));
   }
 };
 
 export const closeWebSocket = () => {
-  if (socket) {
-    socket.close();
-    socket = null;
+  if (chatSocket) {
+    chatSocket.close();
+    chatSocket = null;
   }
 };
-
-export const getSocket = () => socket;

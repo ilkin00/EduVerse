@@ -1,7 +1,7 @@
-import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
+import React, { createContext, useState, useContext, useEffect, useRef } from 'react'; // React import'u OLMALI!
 import api from '../services/api';
 import { useAuth } from './AuthContext';
-import { initWebSocket, closeWebSocket, sendPrivateMessage } from '../services/websocket';
+import { initChatWebSocket, closeWebSocket, sendPrivateMessage } from '../services/websocket';
 
 const ChatContext = createContext({});
 
@@ -57,6 +57,7 @@ export const ChatProvider = ({ children }) => {
       
       return { success: true, message: newMessage };
     } catch (error) {
+      console.log('❌ Mesaj gönderilemedi:', error.response?.data || error.message);
       return { success: false, error: 'Mesaj gönderilemedi' };
     }
   };
@@ -82,20 +83,26 @@ export const ChatProvider = ({ children }) => {
     if (!user) return;
 
     const setupWebSocket = async () => {
-      wsConnected.current = await initWebSocket(user.id, (data) => {
+      wsConnected.current = await initChatWebSocket(user.id, (data) => {
+        console.log('📨 Yeni WebSocket mesajı:', data);
+        
         if (data.type === 'private_message') {
-          setMessages(prev => ({
-            ...prev,
-            [data.sender_id]: [{
-              id: Date.now(),
-              sender_id: data.sender_id,
-              content: data.content,
-              created_at: data.timestamp,
-              is_read: false
-            }, ...(prev[data.sender_id] || [])]
-          }));
-          loadUnreadCount();
+          setMessages(prev => {
+            const currentMessages = prev[data.sender_id] || [];
+            return {
+              ...prev,
+              [data.sender_id]: [{
+                id: Date.now(),
+                sender_id: data.sender_id,
+                content: data.content,
+                created_at: data.timestamp,
+                is_read: false
+              }, ...currentMessages]
+            };
+          });
+          
           loadChatList();
+          loadUnreadCount();
         }
       });
     };
@@ -104,7 +111,10 @@ export const ChatProvider = ({ children }) => {
     loadChatList();
     loadUnreadCount();
 
-    const interval = setInterval(loadUnreadCount, 30000);
+    const interval = setInterval(() => {
+      loadChatList();
+      loadUnreadCount();
+    }, 5000);
     
     return () => {
       clearInterval(interval);

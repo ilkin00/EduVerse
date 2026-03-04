@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime
 
 class MessageBase(BaseModel):
@@ -7,8 +7,20 @@ class MessageBase(BaseModel):
     message_type: str = "text"
     file_url: Optional[str] = None
 
-class MessageCreate(MessageBase):
-    receiver_id: int
+class MessageCreate(BaseModel):  # receiver_id'yi kaldır!
+    content: str
+    message_type: str = "text"
+    file_url: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
+        json_schema_extra = {
+            "example": {
+                "content": "Merhaba!",
+                "message_type": "text",
+                "file_url": None
+            }
+        }
 
 class MessageResponse(MessageBase):
     id: int
@@ -35,6 +47,9 @@ class ChatListItem(BaseModel):
     last_message: Optional[str] = None
     last_message_time: Optional[datetime] = None
     unread_count: int = 0
+    
+    class Config:
+        from_attributes = True
 
 class UnreadCountResponse(BaseModel):
     count: int

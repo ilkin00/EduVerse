@@ -1,8 +1,8 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_URL } from '@env';  // .env'den al
 
-// API URL - backend IP'n
-const API_URL = 'http://localhost:8000/api/v1';
+console.log('🌍 API URL:', API_URL);  // Doğru geldiğini kontrol et
 
 const api = axios.create({
   baseURL: API_URL,
@@ -20,20 +20,11 @@ api.interceptors.request.use(
     const token = await AsyncStorage.getItem('@token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('🔑 Token eklendi');
-    }
-    
-    if (config.data instanceof FormData) {
-      console.log('📤 FormData gönderiliyor');
-    } else if (config.data) {
-      console.log('📤 Data:', config.data);
     }
     
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 // Response interceptor
@@ -44,7 +35,6 @@ api.interceptors.response.use(
   },
   (error) => {
     console.log(`❌ ${error.response?.status} ${error.config?.url}`);
-    console.log('Hata detayı:', error.response?.data || error.message);
     return Promise.reject(error);
   }
 );

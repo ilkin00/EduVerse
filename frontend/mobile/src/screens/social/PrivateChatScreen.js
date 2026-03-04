@@ -28,6 +28,15 @@ export default function PrivateChatScreen({ route, navigation }) {
     loadChatHistory();
   }, []);
 
+  // Yeni mesaj geldiğinde otomatik scroll
+  useEffect(() => {
+    if (chatMessages.length > 0 && !loading) {
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [chatMessages]);
+
   const loadChatHistory = async () => {
     setLoading(true);
     await loadMessages(user.id);
@@ -42,6 +51,7 @@ export default function PrivateChatScreen({ route, navigation }) {
 
     await sendMessage(user.id, messageText);
     
+    // Mesaj gönderildikten sonra scroll
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
     }, 100);
@@ -124,7 +134,7 @@ export default function PrivateChatScreen({ route, navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* Messages */}
+      {/* Messages - TERS SIRADA GÖSTERMEK İÇİN data'yı olduğu gibi ver, FlatList otomatik ters çevirmez */}
       {loading ? (
         <ActivityIndicator size="large" color="#6366F1" style={styles.loader} />
       ) : (
@@ -134,7 +144,14 @@ export default function PrivateChatScreen({ route, navigation }) {
           renderItem={renderMessage}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.messagesList}
-          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+          showsVerticalScrollIndicator={false}
+          initialNumToRender={20}
+          onContentSizeChange={() => {
+            // İlk yüklemede scroll
+            if (chatMessages.length > 0) {
+              flatListRef.current?.scrollToEnd({ animated: false });
+            }
+          }}
         />
       )}
 
