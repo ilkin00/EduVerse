@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_
 from typing import List, Optional
 from app.core.database import get_db
+from app.api import deps  # YENİ
 from app.models.user import User
 from app.models.friendship import Friendship, FriendshipStatus
 from app.models.block import Block
@@ -16,10 +17,12 @@ router = APIRouter()
 @router.get("/", response_model=List[FriendWithStatusSchema])
 def get_friends(
     db: Session = Depends(get_db),
-    current_user_id: int = 1,  # TODO: Auth eklenecek
+    current_user: User = Depends(deps.get_current_user),  # DÜZELTİLDİ
     search: Optional[str] = Query(None, min_length=1, max_length=50)
 ):
     """Arkadaş listesi"""
+    current_user_id = current_user.id
+    
     friendships = db.query(Friendship).filter(
         or_(
             and_(Friendship.user_id == current_user_id, Friendship.friend_id != current_user_id),
@@ -45,9 +48,11 @@ def get_friends(
 @router.get("/requests", response_model=List[FriendshipRequestSchema])
 def get_friend_requests(
     db: Session = Depends(get_db),
-    current_user_id: int = 1
+    current_user: User = Depends(deps.get_current_user)  # DÜZELTİLDİ
 ):
     """Gelen arkadaşlık istekleri"""
+    current_user_id = current_user.id
+    
     requests = db.query(Friendship).filter(
         Friendship.friend_id == current_user_id,
         Friendship.status == FriendshipStatus.PENDING
@@ -64,13 +69,40 @@ def get_friend_requests(
             ))
     return result
 
+@router.get("/requests/sent", response_model=List[FriendshipRequestSchema])
+def get_sent_requests(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user)  # YENİ
+):
+    """Gönderilen arkadaşlık istekleri"""
+    current_user_id = current_user.id
+    
+    requests = db.query(Friendship).filter(
+        Friendship.requester_id == current_user_id,
+        Friendship.status == FriendshipStatus.PENDING
+    ).all()
+    
+    result = []
+    for req in requests:
+        friend_id = req.friend_id if req.user_id == current_user_id else req.user_id
+        friend = db.query(User).filter(User.id == friend_id).first()
+        if friend:
+            result.append(FriendshipRequestSchema(
+                id=req.id,
+                user=friend,
+                created_at=req.created_at
+            ))
+    return result
+
 @router.post("/request/{user_id}", status_code=status.HTTP_201_CREATED)
 def send_friend_request(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user_id: int = 1
+    current_user: User = Depends(deps.get_current_user)  # DÜZELTİLDİ
 ):
     """Arkadaşlık isteği gönder"""
+    current_user_id = current_user.id
+    
     if current_user_id == user_id:
         raise HTTPException(status_code=400, detail="Kendinize istek gönderemezsiniz")
     
@@ -111,9 +143,11 @@ def send_friend_request(
 def accept_friend_request(
     request_id: int,
     db: Session = Depends(get_db),
-    current_user_id: int = 1
+    current_user: User = Depends(deps.get_current_user)  # DÜZELTİLDİ
 ):
     """İsteği kabul et"""
+    current_user_id = current_user.id
+    
     friendship = db.query(Friendship).filter(
         Friendship.id == request_id,
         Friendship.friend_id == current_user_id,
@@ -130,9 +164,11 @@ def accept_friend_request(
 def reject_friend_request(
     request_id: int,
     db: Session = Depends(get_db),
-    current_user_id: int = 1
+    current_user: User = Depends(deps.get_current_user)  # DÜZELTİLDİ
 ):
     """İsteği reddet"""
+    current_user_id = current_user.id
+    
     friendship = db.query(Friendship).filter(
         Friendship.id == request_id,
         Friendship.friend_id == current_user_id,
@@ -149,9 +185,11 @@ def reject_friend_request(
 def block_user(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user_id: int = 1
+    current_user: User = Depends(deps.get_current_user)  # DÜZELTİLDİ
 ):
     """Kullanıcıyı engelle"""
+    current_user_id = current_user.id
+    
     if current_user_id == user_id:
         raise HTTPException(status_code=400, detail="Kendinizi engelleyemezsiniz")
     
@@ -181,9 +219,11 @@ def block_user(
 def unblock_user(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user_id: int = 1
+    current_user: User = Depends(deps.get_current_user)  # DÜZELTİLDİ
 ):
     """Engeli kaldır"""
+    current_user_id = current_user.id
+    
     block = db.query(Block).filter(
         Block.user_id == current_user_id,
         Block.blocked_user_id == user_id
@@ -199,9 +239,11 @@ def unblock_user(
 def search_users(
     q: str = Query(..., min_length=2),
     db: Session = Depends(get_db),
-    current_user_id: int = 1
+    current_user: User = Depends(deps.get_current_user)  # DÜZELTİLDİ
 ):
     """Kullanıcı ara"""
+    current_user_id = current_user.id
+    
     users = db.query(User).filter(
         User.id != current_user_id,
         User.is_active == True,
@@ -238,9 +280,11 @@ def search_users(
 def get_friend_status(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user_id: int = 1
+    current_user: User = Depends(deps.get_current_user)  # DÜZELTİLDİ
 ):
     """Arkadaşlık durumu"""
+    current_user_id = current_user.id
+    
     if current_user_id == user_id:
         return {"status": "self"}
     
@@ -275,4 +319,3 @@ def get_friend_status(
                 "friendship_id": friendship.id
             }
     return {"status": "none"}
-
