@@ -10,10 +10,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFriends } from '../../context/FriendsContext';
-import { useLanguage } from '../../context/LanguageContext';
 
 export default function FriendRequestsScreen({ navigation }) {
-  const { t } = useLanguage();
   const { friendRequests, acceptRequest, rejectRequest, loadFriendRequests } = useFriends();
   const [refreshing, setRefreshing] = React.useState(false);
 
@@ -27,26 +25,24 @@ export default function FriendRequestsScreen({ navigation }) {
     setRefreshing(false);
   };
 
-  const handleAccept = (request) => {
-    Alert.alert(
-      'Arkadaşlık İsteği',
-      `${request.user.full_name || request.user.username} arkadaşlık isteğini kabul etmek istiyor musun?`,
-      [
-        { text: 'İptal', style: 'cancel' },
-        {
-          text: 'Kabul Et',
-          onPress: async () => {
-            const result = await acceptRequest(request.id);
-            if (result.success) {
-              Alert.alert('Başarılı', 'Arkadaşlık isteği kabul edildi');
-            }
-          },
-        },
-      ]
-    );
+  const handleAccept = async (request) => {
+    try {
+      console.log('✅ İstek kabul ediliyor:', request.id);
+      const result = await acceptRequest(request.id);
+      
+      if (result.success) {
+        Alert.alert('Başarılı', 'Arkadaşlık isteği kabul edildi');
+        await loadFriendRequests(); // Listeyi yenile
+      } else {
+        Alert.alert('Hata', result.error || 'İstek kabul edilemedi');
+      }
+    } catch (error) {
+      console.log('❌ Kabul hatası:', error);
+      Alert.alert('Hata', 'Bir hata oluştu');
+    }
   };
 
-  const handleReject = (requestId) => {
+  const handleReject = async (requestId) => {
     Alert.alert(
       'İsteği Reddet',
       'Arkadaşlık isteğini reddetmek istediğine emin misin?',
@@ -56,9 +52,19 @@ export default function FriendRequestsScreen({ navigation }) {
           text: 'Reddet',
           style: 'destructive',
           onPress: async () => {
-            const result = await rejectRequest(requestId);
-            if (result.success) {
-              Alert.alert('Başarılı', 'İstek reddedildi');
+            try {
+              console.log('❌ İstek reddediliyor:', requestId);
+              const result = await rejectRequest(requestId);
+              
+              if (result.success) {
+                Alert.alert('Başarılı', 'İstek reddedildi');
+                await loadFriendRequests(); // Listeyi yenile
+              } else {
+                Alert.alert('Hata', result.error || 'İstek reddedilemedi');
+              }
+            } catch (error) {
+              console.log('❌ Reddetme hatası:', error);
+              Alert.alert('Hata', 'Bir hata oluştu');
             }
           },
         },

@@ -57,29 +57,42 @@ export const FriendsProvider = ({ children }) => {
   const acceptRequest = async (requestId) => {
     try {
       console.log(`✅ İstek kabul ediliyor: ${requestId}`);
-      await api.post(`/friends/accept/${requestId}`);
+      const response = await api.post(`/friends/accept/${requestId}`);
+      console.log('✅ Kabul cevabı:', response.data);
+      
+      // Listeleri yenile
       await loadFriends();
       await loadFriendRequests();
+      
       return { success: true };
     } catch (error) {
-      console.log('❌ İstek kabul edilemedi:', error);
-      return { success: false, error: 'İstek kabul edilemedi' };
+      console.log('❌ İstek kabul edilemedi:', error.response?.data || error.message);
+      return { 
+        success: false, 
+        error: error.response?.data?.detail || 'İstek kabul edilemedi' 
+      };
     }
   };
 
   const rejectRequest = async (requestId) => {
     try {
       console.log(`❌ İstek reddediliyor: ${requestId}`);
-      await api.post(`/friends/reject/${requestId}`);
+      const response = await api.post(`/friends/reject/${requestId}`);
+      console.log('❌ Reddetme cevabı:', response.data);
+      
+      // Listeleri yenile
       await loadFriendRequests();
+      
       return { success: true };
     } catch (error) {
-      console.log('❌ İstek reddedilemedi:', error);
-      return { success: false, error: 'İstek reddedilemedi' };
+      console.log('❌ İstek reddedilemedi:', error.response?.data || error.message);
+      return { 
+        success: false, 
+        error: error.response?.data?.detail || 'İstek reddedilemedi' 
+      };
     }
   };
 
-  // YENİ: searchUsers fonksiyonu
   const searchUsers = async (query) => {
     try {
       console.log(`🔍 Kullanıcı aranıyor: ${query}`);
@@ -92,21 +105,11 @@ export const FriendsProvider = ({ children }) => {
     }
   };
 
-  // Polling: Her 10 saniyede bir istekleri kontrol et
   useEffect(() => {
-    if (!user) return;
-
-    // İlk yükleme
-    loadFriends();
-    loadFriendRequests();
-
-    // Periyodik kontrol
-    const interval = setInterval(() => {
-      console.log('🔄 İstekler periyodik kontrol ediliyor...');
+    if (user) {
+      loadFriends();
       loadFriendRequests();
-    }, 10000);
-
-    return () => clearInterval(interval);
+    }
   }, [user, loadFriends, loadFriendRequests]);
 
   return (
@@ -119,7 +122,7 @@ export const FriendsProvider = ({ children }) => {
       sendFriendRequest,
       acceptRequest,
       rejectRequest,
-      searchUsers, // YENİ: eklendi
+      searchUsers,
     }}>
       {children}
     </FriendsContext.Provider>

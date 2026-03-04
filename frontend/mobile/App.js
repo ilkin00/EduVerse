@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import { LanguageProvider } from './src/context/LanguageContext';
 import { AuthProvider } from './src/context/AuthContext';
-import { LanguageProvider, useLanguage } from './src/context/LanguageContext';
 import { FriendsProvider } from './src/context/FriendsContext';
 import { ChatProvider } from './src/context/ChatContext';
 
@@ -16,15 +16,8 @@ import MainTabNavigator from './src/navigation/MainTabNavigator';
 const Stack = createStackNavigator();
 
 function AppNavigator() {
-  const { language } = useLanguage();
-  const [key, setKey] = useState(Date.now());
-
-  useEffect(() => {
-    setKey(Date.now());
-  }, [language]);
-
   return (
-    <Stack.Navigator key={key} screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
       <Stack.Screen name="Main" component={MainTabNavigator} />
