@@ -3,6 +3,8 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { AuthProvider } from './src/context/AuthContext';
 import { LanguageProvider, useLanguage } from './src/context/LanguageContext';
+import { FriendsProvider } from './src/context/FriendsContext';
+import { ChatProvider } from './src/context/ChatContext';
 
 // Auth Screens
 import LoginScreen from './src/screens/auth/LoginScreen';
@@ -14,10 +16,9 @@ import MainTabNavigator from './src/navigation/MainTabNavigator';
 const Stack = createStackNavigator();
 
 function AppNavigator() {
-  const { language, t } = useLanguage();
+  const { language } = useLanguage();
   const [key, setKey] = useState(Date.now());
 
-  // Dil değişince tüm uygulamayı yeniden render et
   useEffect(() => {
     setKey(Date.now());
   }, [language]);
@@ -35,9 +36,13 @@ export default function App() {
   return (
     <LanguageProvider>
       <AuthProvider>
-        <NavigationContainer>
-          <AppNavigator />
-        </NavigationContainer>
+        <FriendsProvider>
+          <ChatProvider>
+            <NavigationContainer>
+              <AppNavigator />
+            </NavigationContainer>
+          </ChatProvider>
+        </FriendsProvider>
       </AuthProvider>
     </LanguageProvider>
   );

@@ -12,7 +12,6 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { io } from 'socket.io-client';
 import { useLanguage } from '../../context/LanguageContext';
 import api from '../../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -34,7 +33,7 @@ export default function RoomDetailScreen({ route, navigation }) {
 
     return () => {
       if (socket) {
-        socket.disconnect();
+        socket.close();
       }
     };
   }, []);
@@ -59,46 +58,51 @@ export default function RoomDetailScreen({ route, navigation }) {
   const connectWebSocket = async () => {
     try {
       const token = await AsyncStorage.getItem('@token');
-      const wsUrl = `ws://10.252.82.29:8000/api/v1/rooms/ws/${roomId}?token=${token}`;
+      const wsUrl = `ws://localhost:8000/api/v1/rooms/ws/${roomId}?token=${token}`;
       
-      const newSocket = io(wsUrl, {
-        transports: ['websocket'],
-        reconnection: true,
-      });
+      const ws = new WebSocket(wsUrl);
 
-      newSocket.on('connect', () => {
-        console.log('WebSocket connected');
-      });
+      ws.onopen = () => {
+        console.log('✅ Oda WebSocket bağlandı');
+      };
 
-      newSocket.on('message', (message) => {
-        setMessages(prev => [...prev, message]);
-        setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
-      });
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'room_message') {
+          setMessages(prev => [...prev, data]);
+          setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
+        } else if (data.type === 'participant_joined') {
+          setParticipants(prev => [...prev, data.user]);
+        } else if (data.type === 'participant_left') {
+          setParticipants(prev => prev.filter(p => p.id !== data.user_id));
+        }
+      };
 
-      newSocket.on('participant_joined', (data) => {
-        setParticipants(prev => [...prev, data.user]);
-      });
+      ws.onerror = (error) => {
+        console.log('🔴 Oda WebSocket hatası:', error);
+      };
 
-      newSocket.on('participant_left', (data) => {
-        setParticipants(prev => prev.filter(p => p.id !== data.user_id));
-      });
+      ws.onclose = () => {
+        console.log('❌ Oda WebSocket kapandı');
+      };
 
-      setSocket(newSocket);
+      setSocket(ws);
     } catch (error) {
       console.log('WebSocket error:', error);
     }
   };
 
   const sendMessage = () => {
-    if (!inputText.trim() || !socket) return;
+    if (!inputText.trim() || !socket || socket.readyState !== WebSocket.OPEN) return;
 
     const message = {
+      type: 'room_message',
       content: inputText,
-      type: 'text',
       timestamp: new Date().toISOString(),
     };
 
-    socket.emit('message', message);
+    socket.send(JSON.stringify(message));
     setInputText('');
   };
 
@@ -134,7 +138,7 @@ export default function RoomDetailScreen({ route, navigation }) {
   };
 
   const renderMessage = ({ item }) => {
-    const isMe = item.user_id === 'me';
+    const isMe = item.user_id === 8; // TODO: current_user_id
 
     return (
       <View style={[
