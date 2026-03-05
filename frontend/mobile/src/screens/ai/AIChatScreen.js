@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLanguage } from '../../context/LanguageContext';
@@ -26,31 +27,41 @@ export default function AIChatScreen({ navigation }) {
   ]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('mistralai/mistral-7b-instruct');
+  const [selectedModel, setSelectedModel] = useState('mistralai/mixtral-8x7b-instruct'); // DÜZELTİLDİ!
   const [showModelSelector, setShowModelSelector] = useState(false);
   
   const flatListRef = useRef(null);
 
+  // SADECE ÇALIŞAN MODELLER!
   const models = [
-    { id: 'mistralai/mistral-7b-instruct', name: 'Mistral 7B', free: true },
-    { id: 'google/gemini-flash-1.5', name: 'Gemini Flash', free: true },
-    { id: 'cognitivecomputations/dolphin-mixtral-8x7b', name: 'Dolphin Mixtral', free: true },
+    { id: 'mistralai/mixtral-8x7b-instruct', name: 'Mixtral 8x7B', free: true, working: true },
+    { id: 'mistralai/mistral-7b-instruct', name: 'Mistral 7B', free: false, working: false },
   ];
 
   const extractResponseText = (data) => {
     if (!data) return t('ai.no_response');
+    
+    // Backend'den gelen hata mesajlarını göster
+    if (data.detail) {
+      return `Hata: ${data.detail}`;
+    }
+    
     if (typeof data === 'string') return data;
+    
     if (data.choices && data.choices[0]?.message?.content) {
       return data.choices[0].message.content;
     }
+    
     if (typeof data === 'object') {
       if (data.solution) return data.solution;
       if (data.explanation) return data.explanation;
       if (data.response) return data.response;
       if (data.message) return data.message;
       if (data.content) return data.content;
+      if (data.error) return `Hata: ${data.error}`;
       return JSON.stringify(data, null, 2);
     }
+    
     return t('ai.no_response');
   };
 
@@ -69,12 +80,16 @@ export default function AIChatScreen({ navigation }) {
     setLoading(true);
 
     try {
+      console.log('📤 Model gönderiliyor:', selectedModel);
+      
       const response = await api.post('/ai/chat', {
         message: inputText,
         model: selectedModel,
         temperature: 0.7,
       });
 
+      console.log('📥 Cevap:', response.data);
+      
       const aiResponseText = extractResponseText(response.data);
 
       const aiMessage = {
@@ -86,9 +101,16 @@ export default function AIChatScreen({ navigation }) {
 
       setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
+      console.log('❌ Hata:', error.response?.data || error.message);
+      
+      let errorMsg = t('ai.error');
+      if (error.response?.data?.detail) {
+        errorMsg = `Hata: ${error.response.data.detail}`;
+      }
+      
       const errorMessage = {
         id: (Date.now() + 1).toString(),
-        text: t('ai.error'),
+        text: errorMsg,
         sender: 'ai',
         timestamp: new Date(),
       };
@@ -148,18 +170,24 @@ export default function AIChatScreen({ navigation }) {
               key={model.id}
               style={[
                 styles.modelOption,
-                selectedModel === model.id && styles.modelOptionSelected
+                selectedModel === model.id && styles.modelOptionSelected,
+                !model.working && styles.modelOptionDisabled
               ]}
               onPress={() => {
-                setSelectedModel(model.id);
-                setShowModelSelector(false);
+                if (model.working) {
+                  setSelectedModel(model.id);
+                  setShowModelSelector(false);
+                } else {
+                  Alert.alert('Uyarı', 'Bu model şu anda çalışmıyor. Mixtral kullanın.');
+                }
               }}
             >
               <Text style={[
                 styles.modelOptionText,
-                selectedModel === model.id && styles.modelOptionTextSelected
+                selectedModel === model.id && styles.modelOptionTextSelected,
+                !model.working && styles.modelOptionTextDisabled
               ]}>
-                {model.name} {model.free && '🆓'}
+                {model.name} {model.free ? '🆓' : ''} {!model.working ? '❌' : '✅'}
               </Text>
             </TouchableOpacity>
           ))}
@@ -240,6 +268,9 @@ const styles = StyleSheet.create({
   modelOptionSelected: {
     backgroundColor: 'rgba(99,102,241,0.2)',
   },
+  modelOptionDisabled: {
+    opacity: 0.5,
+  },
   modelOptionText: {
     color: '#fff',
     fontSize: 14,
@@ -247,6 +278,9 @@ const styles = StyleSheet.create({
   modelOptionTextSelected: {
     color: '#6366F1',
     fontWeight: 'bold',
+  },
+  modelOptionTextDisabled: {
+    color: '#666',
   },
   messagesList: {
     padding: 20,

@@ -1,133 +1,154 @@
-from fastapi import APIRouter, Depends, HTTPException, Body, Query
-from typing import Optional, List
+from fastapi import APIRouter, Depends, HTTPException
+from typing import List, Optional
 from app.services.ai_service import AIService, MODELS
 from app.models.user import User
 from app.api.v1.endpoints.auth import get_current_user
+from pydantic import BaseModel
+
+# Request/Response modelleri
+class ChatRequest(BaseModel):
+    message: str
+    model: Optional[str] = None
+    temperature: float = 0.7
+
+class ChatResponse(BaseModel):
+    response: str
+    model: str
+
+class ExplainRequest(BaseModel):
+    topic: str
+    level: str = "üniversite"
+    model: Optional[str] = None
+
+class ExplainResponse(BaseModel):
+    explanation: str
+
+class MathRequest(BaseModel):
+    problem: str
+    model: Optional[str] = None
+
+class MathResponse(BaseModel):
+    solution: str
+
+class SummarizeRequest(BaseModel):
+    text: str
+    model: Optional[str] = None
+
+class SummarizeResponse(BaseModel):
+    summary: str
+
+class QuizRequest(BaseModel):
+    topic: str
+    num_questions: int = 5
+    difficulty: str = "orta"
+    model: Optional[str] = None
+
+class QuizResponse(BaseModel):
+    quiz: str
+
+class TranslateRequest(BaseModel):
+    text: str
+    target_lang: str = "İngilizce"
+    model: Optional[str] = None
+
+class TranslateResponse(BaseModel):
+    translation: str
+
+class FlashcardRequest(BaseModel):
+    topic: str
+    num_cards: int = 10
+    model: Optional[str] = None
+
+class FlashcardResponse(BaseModel):
+    flashcards: str
+
+class ModelResponse(BaseModel):
+    id: str
+    name: str
+    provider: str = "Mistral"
 
 router = APIRouter()
 ai_service = AIService()
 
-@router.get("/models")
+@router.get("/models", response_model=List[ModelResponse])
 async def get_models(current_user: User = Depends(get_current_user)):
     """Kullanılabilir modelleri listele"""
-    return {
-        "models": MODELS,
-        "default": "openai/gpt-3.5-turbo"
-    }
+    return [
+        {"id": k, "name": v, "provider": "Mistral"} 
+        for k, v in MODELS.items()
+    ]
 
-@router.post("/chat")
-async def chat(
-    message: str = Body(..., embed=True),
-    model: str = Body("openai/gpt-3.5-turbo", embed=True),
-    temperature: float = Body(0.7, embed=True),
-    current_user: User = Depends(get_current_user)
-):
+@router.post("/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest, current_user: User = Depends(get_current_user)):
     """Sohbet et"""
-    
     messages = [
         {"role": "system", "content": "Sen yardımsever bir eğitim asistanısın. Türkçe cevap ver."},
-        {"role": "user", "content": message}
+        {"role": "user", "content": request.message}
     ]
     
-    result = await ai_service.chat_completion(messages, model=model, temperature=temperature)
+    result = await ai_service.chat_completion(
+        messages, 
+        model=request.model,
+        temperature=request.temperature
+    )
     
     if "error" in result:
         raise HTTPException(status_code=500, detail=result["error"])
     
-    return result
+    return ChatResponse(
+        response=result["choices"][0]["message"]["content"],
+        model=result.get("model", "unknown")
+    )
 
-@router.post("/explain")
-async def explain(
-    topic: str = Body(...),
-    level: str = Body("üniversite"),
-    model: str = Body("openai/gpt-3.5-turbo"),
-    current_user: User = Depends(get_current_user)
-):
+@router.post("/explain", response_model=ExplainResponse)
+async def explain(request: ExplainRequest, current_user: User = Depends(get_current_user)):
     """Konu açıkla"""
-    explanation = await ai_service.explain_topic(topic, level, model)
-    return {"explanation": explanation}
+    explanation = await ai_service.explain_topic(
+        request.topic, 
+        request.level, 
+        request.model
+    )
+    return ExplainResponse(explanation=explanation)
 
-@router.post("/solve-math")
-async def solve_math(
-    problem: str = Body(...),
-    model: str = Body("openai/gpt-3.5-turbo"),
-    current_user: User = Depends(get_current_user)
-):
+@router.post("/solve-math", response_model=MathResponse)
+async def solve_math(request: MathRequest, current_user: User = Depends(get_current_user)):
     """Matematik problemi çöz"""
-    solution = await ai_service.solve_math_problem(problem, model)
-    return {"solution": solution}
+    solution = await ai_service.solve_math_problem(request.problem, request.model)
+    return MathResponse(solution=solution)
 
-@router.post("/summarize")
-async def summarize(
-    text: str = Body(...),
-    model: str = Body("openai/gpt-3.5-turbo"),
-    current_user: User = Depends(get_current_user)
-):
+@router.post("/summarize", response_model=SummarizeResponse)
+async def summarize(request: SummarizeRequest, current_user: User = Depends(get_current_user)):
     """Metin özetle"""
-    summary = await ai_service.summarize_text(text, model)
-    return {"summary": summary}
+    summary = await ai_service.summarize_text(request.text, request.model)
+    return SummarizeResponse(summary=summary)
 
-@router.post("/generate-quiz")
-async def generate_quiz(
-    topic: str = Body(...),
-    num_questions: int = Body(5),
-    difficulty: str = Body("orta"),
-    model: str = Body("openai/gpt-3.5-turbo"),
-    current_user: User = Depends(get_current_user)
-):
+@router.post("/generate-quiz", response_model=QuizResponse)
+async def generate_quiz(request: QuizRequest, current_user: User = Depends(get_current_user)):
     """Quiz oluştur"""
-    quiz = await ai_service.generate_quiz(topic, num_questions, difficulty, model)
-    return {"quiz": quiz}
+    quiz = await ai_service.generate_quiz(
+        request.topic, 
+        request.num_questions, 
+        request.difficulty, 
+        request.model
+    )
+    return QuizResponse(quiz=quiz)
 
-@router.post("/translate")
-async def translate(
-    text: str = Body(...),
-    target_lang: str = Body("Türkçe"),
-    model: str = Body("openai/gpt-3.5-turbo"),
-    current_user: User = Depends(get_current_user)
-):
+@router.post("/translate", response_model=TranslateResponse)
+async def translate(request: TranslateRequest, current_user: User = Depends(get_current_user)):
     """Metin çevir"""
-    translation = await ai_service.translate_text(text, target_lang, model)
-    return {"translation": translation}
+    translation = await ai_service.translate_text(
+        request.text, 
+        request.target_lang, 
+        request.model
+    )
+    return TranslateResponse(translation=translation)
 
-@router.post("/flashcards")
-async def flashcards(
-    topic: str = Body(...),
-    num_cards: int = Body(10),
-    model: str = Body("openai/gpt-3.5-turbo"),
-    current_user: User = Depends(get_current_user)
-):
+@router.post("/flashcards", response_model=FlashcardResponse)
+async def flashcards(request: FlashcardRequest, current_user: User = Depends(get_current_user)):
     """Flashcard oluştur"""
-    cards = await ai_service.generate_flashcards(topic, num_cards, model)
-    return {"flashcards": cards}
-
-@router.post("/code-assist")
-async def code_assist(
-    code: str = Body(...),
-    task: str = Body("açıkla"),
-    language: str = Body("python"),
-    model: str = Body("deepseek/deepseek-coder"),
-    current_user: User = Depends(get_current_user)
-):
-    """Kod yardımı (açıklama, hata ayıklama, optimize etme)"""
-    
-    prompts = {
-        "açıkla": f"Şu {language} kodunu açıkla, ne yaptığını anlat: {code}",
-        "debug": f"Şu {language} kodundaki hataları bul ve düzelt: {code}",
-        "optimize": f"Şu {language} kodunu optimize et, daha hızlı çalışacak şekilde düzenle: {code}",
-        "test": f"Şu {language} kodu için test fonksiyonları yaz: {code}"
-    }
-    
-    prompt = prompts.get(task, prompts["açıkla"])
-    
-    messages = [
-        {"role": "system", "content": f"Sen bir {language} programlama uzmanısın."},
-        {"role": "user", "content": prompt}
-    ]
-    
-    result = await ai_service.chat_completion(messages, model=model, temperature=0.3)
-    
-    if "error" in result:
-        raise HTTPException(status_code=500, detail=result["error"])
-    
-    return result
+    cards = await ai_service.generate_flashcards(
+        request.topic, 
+        request.num_cards, 
+        request.model
+    )
+    return FlashcardResponse(flashcards=cards)

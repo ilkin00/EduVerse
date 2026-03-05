@@ -5,6 +5,7 @@ import { LanguageProvider } from './src/context/LanguageContext';
 import { AuthProvider } from './src/context/AuthContext';
 import { FriendsProvider } from './src/context/FriendsContext';
 import { ChatProvider } from './src/context/ChatContext';
+import { SettingsProvider } from './src/context/SettingsContext'; // YENİ
 
 // Auth Screens
 import LoginScreen from './src/screens/auth/LoginScreen';
@@ -31,9 +32,11 @@ export default function App() {
       <AuthProvider>
         <FriendsProvider>
           <ChatProvider>
-            <NavigationContainer>
-              <AppNavigator />
-            </NavigationContainer>
+            <SettingsProvider> {/* YENİ */}
+              <NavigationContainer>
+                <AppNavigator />
+              </NavigationContainer>
+            </SettingsProvider>
           </ChatProvider>
         </FriendsProvider>
       </AuthProvider>

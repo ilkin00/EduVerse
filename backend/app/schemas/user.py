@@ -31,6 +31,10 @@ class UserInDB(UserBase):
 
 # User Response
 class UserResponse(UserInDB):
+# UserResponse'a ekle:
+    avatar: Optional[str] = None
+    bio: Optional[str] = None
+    last_seen: Optional[datetime] = None	
     pass
 
 # Token

@@ -3,15 +3,10 @@ import json
 from typing import List, Dict, Any, Optional
 from app.core.config import settings
 
-# Kullanılabilir modeller (Türkiye'de çalışanlar)
+# Kullanılabilir modeller (SADECE ÇALIŞANLAR)
 MODELS = {
-    "mistralai/mistral-7b-instruct": "Mistral 7B (Hızlı, Ücretsiz)",
-    "meta-llama/llama-2-70b-chat": "Llama 2 70B (Güçlü)",
-    "deepseek/deepseek-chat": "DeepSeek (Kod için iyi)",
-    "google/gemini-pro": "Gemini Pro (Google)",
-    "anthropic/claude-3-haiku": "Claude 3 Haiku (Hızlı)",
-    "cohere/command": "Cohere Command",
-    "microsoft/phi-3-mini-128k-instruct": "Phi-3 Mini (Çok hızlı)",
+    "mistralai/mixtral-8x7b-instruct": "Mixtral 8x7B (Çalışıyor, Ücretsiz)",
+    "mistralai/mistral-7b-instruct": "Mistral 7B (Deneysel)",
 }
 
 class AIService:
@@ -24,27 +19,38 @@ class AIService:
             "HTTP-Referer": "http://localhost:8000",
             "X-Title": "EduVerse AI Assistant"
         }
+        # Varsayılan model (ÇALIŞAN)
+        self.default_model = "mistralai/mixtral-8x7b-instruct"
     
     async def chat_completion(
         self,
         messages: List[Dict[str, str]],
-        model: str = "mistralai/mistral-7b-instruct",
+        model: Optional[str] = None,
         temperature: float = 0.7,
         max_tokens: int = 1000
     ) -> Dict[str, Any]:
         """OpenRouter üzerinden sohbet tamamlama"""
         
         if not self.api_key:
-            return {"error": "API anahtarı bulunamadı"}
+            return {"error": "API anahtarı bulunamadı. Lütfen .env dosyasını kontrol edin."}
+        
+        # Model seçimi
+        use_model = model or self.default_model
+        
+        # OpenAI modellerini engelle
+        if "openai" in use_model or "gpt" in use_model:
+            return {"error": "OpenAI modelleri Türkiye'de çalışmıyor. Mixtral kullanın."}
         
         payload = {
-            "model": model,
+            "model": use_model,
             "messages": messages,
             "temperature": temperature,
             "max_tokens": max_tokens
         }
         
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        print(f"📤 İstek gönderiliyor: {use_model}")
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
             try:
                 response = await client.post(
                     self.base_url,
@@ -52,37 +58,26 @@ class AIService:
                     json=payload
                 )
                 
-                if response.status_code == 403:
-                    error_detail = response.json()
-                    if "openai" in model:
-                        return {"error": "OpenAI modelleri Türkiye'de çalışmıyor. Mistral veya Llama kullanın."}
-                    return {"error": f"Yetki hatası: {error_detail}"}
+                print(f"📥 Cevap kodu: {response.status_code}")
                 
-                response.raise_for_status()
-                return response.json()
-                
+                if response.status_code == 200:
+                    return response.json()
+                elif response.status_code == 401:
+                    return {"error": "API anahtarı geçersiz. .env dosyasını kontrol edin."}
+                elif response.status_code == 404:
+                    return {"error": f"Model bulunamadı: {use_model}. Lütfen geçerli bir model seçin."}
+                else:
+                    return {"error": f"API hatası: {response.status_code}"}
+                    
             except Exception as e:
                 return {"error": f"Bağlantı hatası: {str(e)}"}
     
-    async def explain_topic(
-        self,
-        topic: str,
-        level: str = "üniversite",
-        model: str = "mistralai/mistral-7b-instruct"
-    ) -> str:
-        """Bir konuyu açıkla"""
-        
+    async def explain_topic(self, topic: str, level: str = "üniversite", model: Optional[str] = None) -> str:
+        """Konu anlatımı"""
         messages = [
-            {
-                "role": "system",
-                "content": f"Sen bir eğitim asistanısın. {level} seviyesinde Türkçe açıklama yap."
-            },
-            {
-                "role": "user",
-                "content": f"'{topic}' konusunu açıkla"
-            }
+            {"role": "system", "content": f"Sen bir eğitim asistanısın. {level} seviyesinde Türkçe açıklama yap."},
+            {"role": "user", "content": f"'{topic}' konusunu detaylıca açıkla."}
         ]
-        
         result = await self.chat_completion(messages, model=model)
         
         if "error" in result:
@@ -93,24 +88,12 @@ class AIService:
         except:
             return "Cevap alınamadı"
     
-    async def solve_math_problem(
-        self,
-        problem: str,
-        model: str = "mistralai/mistral-7b-instruct"
-    ) -> str:
+    async def solve_math_problem(self, problem: str, model: Optional[str] = None) -> str:
         """Matematik problemi çöz"""
-        
         messages = [
-            {
-                "role": "system",
-                "content": "Matematik problemlerini adım adım çözen asistan"
-            },
-            {
-                "role": "user",
-                "content": problem
-            }
+            {"role": "system", "content": "Matematik problemlerini adım adım çöz. Türkçe anlat."},
+            {"role": "user", "content": problem}
         ]
-        
         result = await self.chat_completion(messages, model=model, temperature=0.3)
         
         if "error" in result:
@@ -121,24 +104,12 @@ class AIService:
         except:
             return "Çözülemedi"
     
-    async def summarize_text(
-        self,
-        text: str,
-        model: str = "mistralai/mistral-7b-instruct"
-    ) -> str:
+    async def summarize_text(self, text: str, model: Optional[str] = None) -> str:
         """Metin özetle"""
-        
         messages = [
-            {
-                "role": "system",
-                "content": "Metni özetle, ana noktaları çıkar"
-            },
-            {
-                "role": "user",
-                "content": f"Özetle: {text[:2000]}"
-            }
+            {"role": "system", "content": "Metni özetle, ana noktaları çıkar. Türkçe özet ver."},
+            {"role": "user", "content": f"Özetle: {text[:1500]}"}
         ]
-        
         result = await self.chat_completion(messages, model=model, temperature=0.5)
         
         if "error" in result:
@@ -149,26 +120,12 @@ class AIService:
         except:
             return "Özetlenemedi"
     
-    async def generate_quiz(
-        self,
-        topic: str,
-        num_questions: int = 5,
-        difficulty: str = "orta",
-        model: str = "mistralai/mistral-7b-instruct"
-    ) -> str:
+    async def generate_quiz(self, topic: str, num_questions: int = 5, difficulty: str = "orta", model: Optional[str] = None) -> str:
         """Quiz oluştur"""
-        
         messages = [
-            {
-                "role": "system",
-                "content": f"{difficulty} zorlukta {num_questions} soruluk quiz hazırla"
-            },
-            {
-                "role": "user",
-                "content": f"{topic} konusunda quiz"
-            }
+            {"role": "system", "content": f"{difficulty} zorlukta {num_questions} soruluk quiz hazırla. Sorular ve cevaplar Türkçe olsun."},
+            {"role": "user", "content": f"{topic} konusunda quiz"}
         ]
-        
         result = await self.chat_completion(messages, model=model, temperature=0.7)
         
         if "error" in result:
@@ -179,25 +136,12 @@ class AIService:
         except:
             return "Quiz oluşturulamadı"
     
-    async def translate_text(
-        self,
-        text: str,
-        target_lang: str = "Türkçe",
-        model: str = "mistralai/mistral-7b-instruct"
-    ) -> str:
+    async def translate_text(self, text: str, target_lang: str = "İngilizce", model: Optional[str] = None) -> str:
         """Metin çevir"""
-        
         messages = [
-            {
-                "role": "system",
-                "content": f"Çeviri yap: {target_lang}"
-            },
-            {
-                "role": "user",
-                "content": text
-            }
+            {"role": "system", "content": f"Çeviri yap: {target_lang}. Sadece çeviriyi ver."},
+            {"role": "user", "content": text}
         ]
-        
         result = await self.chat_completion(messages, model=model, temperature=0.3)
         
         if "error" in result:
@@ -208,25 +152,12 @@ class AIService:
         except:
             return "Çeviri yapılamadı"
     
-    async def generate_flashcards(
-        self,
-        topic: str,
-        num_cards: int = 10,
-        model: str = "mistralai/mistral-7b-instruct"
-    ) -> str:
+    async def generate_flashcards(self, topic: str, num_cards: int = 10, model: Optional[str] = None) -> str:
         """Flashcard oluştur"""
-        
         messages = [
-            {
-                "role": "system",
-                "content": f"{num_cards} tane flashcard hazırla. Format: Soru: ... Cevap: ..."
-            },
-            {
-                "role": "user",
-                "content": topic
-            }
+            {"role": "system", "content": f"{num_cards} flashcard hazırla. Format: Soru: ... Cevap: ... (Türkçe)"},
+            {"role": "user", "content": topic}
         ]
-        
         result = await self.chat_completion(messages, model=model, temperature=0.6)
         
         if "error" in result:

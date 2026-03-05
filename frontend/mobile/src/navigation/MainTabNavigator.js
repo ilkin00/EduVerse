@@ -12,7 +12,7 @@ import AIStack from './AIStack';
 import RoomsStack from './RoomsStack';
 import FilesStack from './FilesStack';
 import SocialStack from './SocialStack';
-import ProfileScreen from '../screens/profile/ProfileScreen';
+import SettingsStack from './SettingsStack';
 
 const Tab = createBottomTabNavigator();
 
@@ -37,7 +37,6 @@ export default function MainTabNavigator() {
           } else if (route.name === 'Sosyal') {
             iconName = focused ? 'people-circle' : 'people-circle-outline';
             
-            // Sosyal ikonunu badge ile döndür
             return (
               <View>
                 <Ionicons name={iconName} size={size} color={color} />
@@ -63,11 +62,10 @@ export default function MainTabNavigator() {
             );
           } else if (route.name === 'Dosyalar') {
             iconName = focused ? 'images' : 'images-outline';
-          } else if (route.name === 'Profil') {
-            iconName = focused ? 'person' : 'person-outline';
+          } else if (route.name === 'Ayarlar') {
+            iconName = focused ? 'settings' : 'settings-outline';
           }
           
-          // Diğer sekmeler için normal ikon döndür
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: '#6366F1',
@@ -89,7 +87,7 @@ export default function MainTabNavigator() {
       <Tab.Screen name="Odalar" component={RoomsStack} />
       <Tab.Screen name="Sosyal" component={SocialStack} />
       <Tab.Screen name="Dosyalar" component={FilesStack} />
-      <Tab.Screen name="Profil" component={ProfileScreen} />
+      <Tab.Screen name="Ayarlar" component={SettingsStack} />
     </Tab.Navigator>
   );
 }

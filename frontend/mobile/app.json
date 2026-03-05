@@ -33,10 +33,17 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-localization"
+      "expo-localization",
+      "@react-native-community/datetimepicker"
     ],
     "ios": {
       "bundleIdentifier": "com.anonymous.eduverse"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "a66a3b8c-7c82-4bf0-b67d-f0f31b55ac7d"
+      }
+    },
+    "owner": "ilkin00"
   }
 }
