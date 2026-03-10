@@ -15,13 +15,29 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
-# CORS ayarları
+# CORS ayarları - DÜZƏLDİLDİ
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Production'da kısıtla
+    allow_origins=[
+        "http://localhost:8081",
+        "http://localhost:19000",
+        "http://localhost:19001",
+        "http://localhost:19002",
+        "https://app.eduvers.site",
+        "http://app.eduvers.site",
+        "https://eduvers.site",
+        "http://eduvers.site",
+        "https://api.eduvers.site",
+        "http://api.eduvers.site",
+        "https://admin.eduvers.site",
+        "http://admin.eduvers.site",
+        "*"  # Geliştirme için, production'da kaldır
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,
 )
 
 # API router'ını ekle

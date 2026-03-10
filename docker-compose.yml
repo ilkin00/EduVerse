@@ -1,5 +1,4 @@
 services:
-  # PostgreSQL Veritabanı
   postgres:
     image: postgres:15-alpine
     container_name: eduverse-postgres
@@ -22,7 +21,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # Redis Cache
   redis:
     image: redis:7-alpine
     container_name: eduverse-redis
@@ -40,7 +38,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # FastAPI Backend
   backend:
     build: ./backend
     container_name: eduverse-backend
@@ -67,7 +64,24 @@ services:
       - eduverse-network
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
-  # Adminer - Veritabanı Yönetim Aracı (opsiyonel)
+  nginx:
+    image: nginx:alpine
+    container_name: eduverse-nginx
+    restart: unless-stopped
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/web-app/build:/var/www/web-app/build:ro
+      - ./nginx/logs:/var/log/nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+      - mobile-app
+    networks:
+      - eduverse-network
+
   adminer:
     image: adminer:latest
     container_name: eduverse-adminer
@@ -79,10 +93,37 @@ services:
     depends_on:
       - postgres
 
+  mobile-app:
+    build: 
+      context: ./frontend/mobile
+      dockerfile: Dockerfile
+    container_name: eduverse-mobile
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+      - "19000:19000"
+      - "19001:19001"
+      - "19002:19002"
+    environment:
+      - EXPO_PUBLIC_API_URL=https://api.eduvers.site
+      - EXPO_PUBLIC_WEB_URL=https://eduvers.site
+      - REACT_NATIVE_PACKAGER_HOSTNAME=0.0.0.0
+      - NODE_ENV=development
+    volumes:
+      - ./frontend/mobile:/app
+      - /app/node_modules
+    networks:
+      - eduverse-network
+    stdin_open: true
+    tty: true
+
 networks:
   eduverse-network:
     driver: bridge
+    name: eduverse-network
 
 volumes:
   postgres_data:
+    name: eduverse-postgres-data
   redis_data:
+    name: eduverse-redis-data
