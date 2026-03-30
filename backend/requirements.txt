@@ -15,6 +15,7 @@ httpx
 loguru
 email-validator
 websockets
+PyJWT
 # Dosya yükleme için
 python-magic==0.4.27
 Pillow==10.1.0

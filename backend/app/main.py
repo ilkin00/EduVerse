@@ -5,6 +5,7 @@ from app.api.v1 import router as api_router
 from app.core.database import engine, Base
 import json
 from urllib.parse import parse_qs
+import jwt  # pip install PyJWT
 
 # Veritabanı tablolarını oluştur (sadece geliştirme için)
 Base.metadata.create_all(bind=engine)
@@ -15,7 +16,7 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
-# CORS ayarları - DÜZƏLDİLDİ
+# CORS ayarları
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -43,70 +44,94 @@ app.add_middleware(
 # API router'ını ekle
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
-# WebSocket bağlantılarını tut
+# WebSocket bağlantılarını tut (user_id -> list of websockets)
 active_connections = {}
+
+JWT_SECRET = settings.SECRET_KEY  # config dosyanda olmalı
+JWT_ALGORITHM = "HS256"
+
+def decode_token(token: str):
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return payload.get("user_id")
+    except Exception as e:
+        print(f"🔴 Token decode hatası: {e}")
+        return None
 
 @app.websocket("/api/v1/ws/chat")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     user_id = None
-    
+
     try:
         # Token'dan user_id al (query parametresinden)
         query_string = websocket.scope.get('query_string', b'').decode()
         params = parse_qs(query_string)
         token = params.get('token', [None])[0]
-        
-        # Token'dan user_id çöz (basit versiyon - gerçek projede JWT decode yap)
-        # Şimdilik token son 3 karakteri user_id olarak kullanalım (geçici)
+
         if token:
-            # Bu kısım geçici - gerçek JWT decode sonra eklenecek
-            user_id = 8  # Şimdilik sabit ID
-            active_connections[user_id] = websocket
+            user_id = decode_token(token)
+            if not user_id:
+                await websocket.close(code=1008)
+                return
+            
+            # Aynı kullanıcı için listeye ekle
+            if user_id not in active_connections:
+                active_connections[user_id] = []
+            active_connections[user_id].append(websocket)
             print(f"✅ WebSocket bağlandı: {user_id}")
-        
+
         while True:
             data = await websocket.receive_text()
             message = json.loads(data)
             print(f"📩 Mesaj alındı: {message}")
-            
+
             if message["type"] == "private_message":
                 receiver_id = message["receiver_id"]
                 if receiver_id in active_connections:
-                    await active_connections[receiver_id].send_json({
-                        "type": "private_message",
-                        "sender_id": user_id,
-                        "content": message["content"],
-                        "timestamp": message.get("timestamp")
-                    })
+                    for conn in active_connections[receiver_id]:
+                        await conn.send_json({
+                            "type": "private_message",
+                            "sender_id": user_id,
+                            "content": message["content"],
+                            "timestamp": message.get("timestamp")
+                        })
                     print(f"📤 Mesaj iletildi: {receiver_id}")
-            
+
             elif message["type"] == "typing":
                 receiver_id = message["receiver_id"]
                 if receiver_id in active_connections:
-                    await active_connections[receiver_id].send_json({
-                        "type": "typing",
-                        "sender_id": user_id,
-                        "is_typing": message.get("is_typing")
-                    })
-            
+                    for conn in active_connections[receiver_id]:
+                        await conn.send_json({
+                            "type": "typing",
+                            "sender_id": user_id,
+                            "is_typing": message.get("is_typing")
+                        })
+
             elif message["type"] == "mark_read":
                 sender_id = message["sender_id"]
                 if sender_id in active_connections:
-                    await active_connections[sender_id].send_json({
-                        "type": "read_receipt",
-                        "reader_id": user_id,
-                        "message_ids": message.get("message_ids")
-                    })
-                    
+                    for conn in active_connections[sender_id]:
+                        await conn.send_json({
+                            "type": "read_receipt",
+                            "reader_id": user_id,
+                            "message_ids": message.get("message_ids")
+                        })
+
     except WebSocketDisconnect:
         if user_id and user_id in active_connections:
-            del active_connections[user_id]
+            # Bu websocket'i listeden çıkar
+            active_connections[user_id] = [c for c in active_connections[user_id] if c != websocket]
+            if not active_connections[user_id]:
+                del active_connections[user_id]
             print(f"❌ WebSocket ayrıldı: {user_id}")
+
     except Exception as e:
         print(f"🔴 WebSocket hatası: {e}")
         if user_id and user_id in active_connections:
-            del active_connections[user_id]
+            active_connections[user_id] = [c for c in active_connections[user_id] if c != websocket]
+            if not active_connections[user_id]:
+                del active_connections[user_id]
 
 @app.get("/")
 def root():

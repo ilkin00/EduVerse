@@ -109,6 +109,7 @@ services:
       - EXPO_PUBLIC_WEB_URL=https://eduvers.site
       - REACT_NATIVE_PACKAGER_HOSTNAME=0.0.0.0
       - NODE_ENV=development
+      - EXPO_PACKAGER_PROXY_URL=https://app.eduvers.site  # ✅ Eklendi
     volumes:
       - ./frontend/mobile:/app
       - /app/node_modules
