@@ -4,17 +4,26 @@ from typing import List, Optional
 from datetime import datetime
 import json
 from app.core.database import get_db
+from app.core.config import settings
 from app.models.user import User
 from app.models.room import Room, RoomParticipant
-from app.schemas.room import RoomCreate, RoomUpdate, RoomResponse, RoomParticipantResponse
+from app.schemas.room import RoomCreate, RoomUpdate, RoomResponse, RoomParticipantResponse, RoleUpdate, MuteUpdate
 from app.api.v1.endpoints.auth import get_current_user, oauth2_scheme
 
 router = APIRouter()
 
-# WebSocket bağlantılarını yönetmek için
+def get_user_role(room_id: int, user_id: int, db: Session) -> str:
+    """Kullanıcının odadaki rolünü döndür"""
+    participant = db.query(RoomParticipant).filter(
+        RoomParticipant.room_id == room_id,
+        RoomParticipant.user_id == user_id
+    ).first()
+    return participant.role if participant else "guest"
+
+# WebSocket manager
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: dict[int, List[WebSocket]] = {}  # room_id -> [websockets]
+        self.active_connections: dict[int, List[WebSocket]] = {}
     
     async def connect(self, websocket: WebSocket, room_id: int):
         await websocket.accept()
@@ -36,7 +45,8 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-# REST API Endpoints
+# ============ REST API Endpoints ============
+
 @router.get("/", response_model=List[RoomResponse])
 def read_rooms(
     skip: int = 0,
@@ -46,15 +56,17 @@ def read_rooms(
     current_user: User = Depends(get_current_user)
 ):
     """Odaları listele"""
-    query = db.query(Room)
+    query = db.query(Room).filter(Room.is_active == True)
     if room_type:
         query = query.filter(Room.room_type == room_type)
     
     rooms = query.offset(skip).limit(limit).all()
     
-    # Katılımcı sayılarını ekle
     for room in rooms:
-        room.participant_count = db.query(RoomParticipant).filter(RoomParticipant.room_id == room.id).count()
+        room.participant_count = db.query(RoomParticipant).filter(
+            RoomParticipant.room_id == room.id,
+            RoomParticipant.is_banned == False
+        ).count()
     
     return rooms
 
@@ -73,11 +85,10 @@ def create_room(
     db.commit()
     db.refresh(db_room)
     
-    # Sahibi otomatik olarak katılımcı ekle
     participant = RoomParticipant(
         room_id=db_room.id,
         user_id=current_user.id,
-        role="host"
+        role="owner"
     )
     db.add(participant)
     db.commit()
@@ -96,7 +107,10 @@ def read_room(
     if not room:
         raise HTTPException(status_code=404, detail="Oda bulunamadı")
     
-    room.participant_count = db.query(RoomParticipant).filter(RoomParticipant.room_id == room_id).count()
+    room.participant_count = db.query(RoomParticipant).filter(
+        RoomParticipant.room_id == room_id,
+        RoomParticipant.is_banned == False
+    ).count()
     return room
 
 @router.put("/{room_id}", response_model=RoomResponse)
@@ -106,24 +120,15 @@ def update_room(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Oda güncelle - Sadece sahibi veya host güncelleyebilir"""
+    """Oda güncelle"""
     room = db.query(Room).filter(Room.id == room_id).first()
     if not room:
         raise HTTPException(status_code=404, detail="Oda bulunamadı")
     
-    # Yetki kontrolü - sadece oda sahibi güncelleyebilir
-    if room.owner_id != current_user.id:
-        # Host kontrolü
-        host = db.query(RoomParticipant).filter(
-            RoomParticipant.room_id == room_id,
-            RoomParticipant.user_id == current_user.id,
-            RoomParticipant.role == "host"
-        ).first()
-        
-        if not host:
-            raise HTTPException(status_code=403, detail="Bu odayı güncelleme yetkiniz yok")
+    user_role = get_user_role(room_id, current_user.id, db)
+    if user_role not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Bu odayı güncelleme yetkiniz yok")
     
-    # Güncelle
     for key, value in room_update.model_dump(exclude_unset=True).items():
         setattr(room, key, value)
     
@@ -137,18 +142,16 @@ def delete_room(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Oda sil - Sadece sahibi silebilir"""
+    """Oda sil - Sadece owner silebilir"""
     room = db.query(Room).filter(Room.id == room_id).first()
     if not room:
         raise HTTPException(status_code=404, detail="Oda bulunamadı")
     
-    # Yetki kontrolü - sadece oda sahibi silebilir
     if room.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Bu odayı silme yetkiniz yok")
     
     db.delete(room)
     db.commit()
-    return None
 
 @router.post("/{room_id}/join")
 def join_room(
@@ -164,12 +167,21 @@ def join_room(
     if not room.is_active:
         raise HTTPException(status_code=400, detail="Bu oda aktif değil")
     
-    # Maksimum katılımcı kontrolü
-    current_count = db.query(RoomParticipant).filter(RoomParticipant.room_id == room_id).count()
+    banned = db.query(RoomParticipant).filter(
+        RoomParticipant.room_id == room_id,
+        RoomParticipant.user_id == current_user.id,
+        RoomParticipant.is_banned == True
+    ).first()
+    if banned:
+        raise HTTPException(status_code=403, detail="Bu odadan engellendiniz")
+    
+    current_count = db.query(RoomParticipant).filter(
+        RoomParticipant.room_id == room_id,
+        RoomParticipant.is_banned == False
+    ).count()
     if current_count >= room.max_participants:
         raise HTTPException(status_code=400, detail="Oda maksimum kapasiteye ulaştı")
     
-    # Zaten katılmış mı kontrol et
     existing = db.query(RoomParticipant).filter(
         RoomParticipant.room_id == room_id,
         RoomParticipant.user_id == current_user.id
@@ -178,7 +190,8 @@ def join_room(
     if not existing:
         participant = RoomParticipant(
             room_id=room_id,
-            user_id=current_user.id
+            user_id=current_user.id,
+            role="member"
         )
         db.add(participant)
         db.commit()
@@ -199,16 +212,15 @@ def leave_room(
     ).first()
     
     if participant:
-        # Host ayrılıyorsa, başka birini host yap
-        if participant.role == "host":
-            # Başka bir katılımcı bul
-            other_participant = db.query(RoomParticipant).filter(
+        if participant.role == "owner":
+            new_owner = db.query(RoomParticipant).filter(
                 RoomParticipant.room_id == room_id,
-                RoomParticipant.user_id != current_user.id
+                RoomParticipant.user_id != current_user.id,
+                RoomParticipant.is_banned == False
             ).first()
             
-            if other_participant:
-                other_participant.role = "host"
+            if new_owner:
+                new_owner.role = "owner"
         
         db.delete(participant)
         db.commit()
@@ -227,86 +239,273 @@ def get_participants(
     if not room:
         raise HTTPException(status_code=404, detail="Oda bulunamadı")
     
-    participants = db.query(RoomParticipant).filter(RoomParticipant.room_id == room_id).all()
+    participants = db.query(RoomParticipant).filter(
+        RoomParticipant.room_id == room_id,
+        RoomParticipant.is_banned == False
+    ).all()
     
-    # Kullanıcı adlarını ekle
     for p in participants:
         user = db.query(User).filter(User.id == p.user_id).first()
         p.username = user.username if user else None
     
     return participants
 
-@router.post("/{room_id}/promote/{user_id}")
-def promote_participant(
+@router.put("/{room_id}/role/{user_id}")
+def update_user_role(
+    room_id: int,
+    user_id: int,
+    role_update: RoleUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Kullanıcının rolünü değiştir"""
+    room = db.query(Room).filter(Room.id == room_id).first()
+    if not room:
+        raise HTTPException(status_code=404, detail="Oda bulunamadı")
+    
+    user_role = get_user_role(room_id, current_user.id, db)
+    
+    if user_role == "owner":
+        pass
+    elif user_role == "admin" and role_update.role in ["moderator", "member", "guest"]:
+        pass
+    else:
+        raise HTTPException(status_code=403, detail="Rol değiştirme yetkiniz yok")
+    
+    target = db.query(RoomParticipant).filter(
+        RoomParticipant.room_id == room_id,
+        RoomParticipant.user_id == user_id
+    ).first()
+    
+    if not target:
+        raise HTTPException(status_code=404, detail="Kullanıcı odada bulunamadı")
+    
+    target.role = role_update.role
+    db.commit()
+    
+    return {"message": f"Kullanıcı rolü {role_update.role} olarak güncellendi"}
+
+@router.post("/{room_id}/kick/{user_id}")
+def kick_user(
     room_id: int,
     user_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Katılımcıyı host yap - Sadece oda sahibi yapabilir"""
-    room = db.query(Room).filter(Room.id == room_id).first()
-    if not room:
-        raise HTTPException(status_code=404, detail="Oda bulunamadı")
+    """Kullanıcıyı odadan at"""
+    user_role = get_user_role(room_id, current_user.id, db)
+    if user_role not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Kullanıcı atma yetkiniz yok")
     
-    # Yetki kontrolü - sadece oda sahibi
-    if room.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Bu işlem için yetkiniz yok")
-    
-    participant = db.query(RoomParticipant).filter(
+    target = db.query(RoomParticipant).filter(
         RoomParticipant.room_id == room_id,
         RoomParticipant.user_id == user_id
     ).first()
     
-    if not participant:
-        raise HTTPException(status_code=404, detail="Katılımcı bulunamadı")
+    if not target:
+        raise HTTPException(status_code=404, detail="Kullanıcı odada bulunamadı")
     
-    participant.role = "host"
+    if target.role == "owner":
+        raise HTTPException(status_code=403, detail="Oda sahibini atamazsınız")
+    
+    db.delete(target)
     db.commit()
     
-    return {"message": "Kullanıcı host yapıldı"}
+    return {"message": "Kullanıcı odadan atıldı"}
 
-# WebSocket endpoint
+@router.post("/{room_id}/ban/{user_id}")
+def ban_user(
+    room_id: int,
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Kullanıcıyı odadan engelle"""
+    user_role = get_user_role(room_id, current_user.id, db)
+    if user_role not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Kullanıcı engelleme yetkiniz yok")
+    
+    target = db.query(RoomParticipant).filter(
+        RoomParticipant.room_id == room_id,
+        RoomParticipant.user_id == user_id
+    ).first()
+    
+    if not target:
+        raise HTTPException(status_code=404, detail="Kullanıcı odada bulunamadı")
+    
+    if target.role == "owner":
+        raise HTTPException(status_code=403, detail="Oda sahibini engelleyemezsiniz")
+    
+    target.is_banned = True
+    db.commit()
+    
+    return {"message": "Kullanıcı engellendi"}
+
+@router.post("/{room_id}/unban/{user_id}")
+def unban_user(
+    room_id: int,
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Kullanıcının engelini kaldır"""
+    user_role = get_user_role(room_id, current_user.id, db)
+    if user_role not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Engel kaldırma yetkiniz yok")
+    
+    target = db.query(RoomParticipant).filter(
+        RoomParticipant.room_id == room_id,
+        RoomParticipant.user_id == user_id,
+        RoomParticipant.is_banned == True
+    ).first()
+    
+    if not target:
+        raise HTTPException(status_code=404, detail="Engellenmiş kullanıcı bulunamadı")
+    
+    target.is_banned = False
+    db.commit()
+    
+    return {"message": "Kullanıcının engeli kaldırıldı"}
+
+@router.post("/{room_id}/mute/{user_id}")
+def mute_user(
+    room_id: int,
+    user_id: int,
+    mute_update: MuteUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Kullanıcıyı sustur"""
+    user_role = get_user_role(room_id, current_user.id, db)
+    if user_role not in ["owner", "admin", "moderator"]:
+        raise HTTPException(status_code=403, detail="Kullanıcı susturma yetkiniz yok")
+    
+    target = db.query(RoomParticipant).filter(
+        RoomParticipant.room_id == room_id,
+        RoomParticipant.user_id == user_id
+    ).first()
+    
+    if not target:
+        raise HTTPException(status_code=404, detail="Kullanıcı odada bulunamadı")
+    
+    if target.role in ["owner", "admin"] and user_role != "owner":
+        raise HTTPException(status_code=403, detail="Bu kullanıcıyı susturamazsınız")
+    
+    target.is_muted = mute_update.is_muted
+    db.commit()
+    
+    status_text = "susturuldu" if mute_update.is_muted else "susturması kaldırıldı"
+    return {"message": f"Kullanıcı {status_text}"}
+
+@router.post("/{room_id}/transfer/{user_id}")
+def transfer_ownership(
+    room_id: int,
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Oda sahipliğini devret"""
+    room = db.query(Room).filter(Room.id == room_id).first()
+    if not room:
+        raise HTTPException(status_code=404, detail="Oda bulunamadı")
+    
+    if room.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Sadece oda sahibi devredebilir")
+    
+    target = db.query(RoomParticipant).filter(
+        RoomParticipant.room_id == room_id,
+        RoomParticipant.user_id == user_id
+    ).first()
+    
+    if not target:
+        raise HTTPException(status_code=404, detail="Kullanıcı odada bulunamadı")
+    
+    old_owner = db.query(RoomParticipant).filter(
+        RoomParticipant.room_id == room_id,
+        RoomParticipant.user_id == current_user.id
+    ).first()
+    old_owner.role = "member"
+    
+    target.role = "owner"
+    room.owner_id = user_id
+    
+    db.commit()
+    
+    return {"message": "Oda sahipliği devredildi"}
+
+# ============ WebSocket ============
+
 @router.websocket("/ws/{room_id}")
 async def websocket_endpoint(
     websocket: WebSocket,
     room_id: int,
-    token: str
+    token: str,
+    db: Session = Depends(get_db)
 ):
     await manager.connect(websocket, room_id)
+    
     try:
-        # Hoşgeldin mesajı
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        username = payload.get("sub")
+        user = db.query(User).filter(User.username == username).first()
+        
+        if not user:
+            await websocket.close(code=1008)
+            return
+        
+        user_role = get_user_role(room_id, user.id, db)
+        
         await manager.broadcast({
             "type": "system",
-            "message": "Yeni bir kullanıcı bağlandı",
+            "message": f"{username} odaya katıldı",
+            "user": username,
+            "role": user_role,
             "timestamp": str(datetime.utcnow())
         }, room_id)
         
+    except Exception as e:
+        print(f"WebSocket auth hatası: {e}")
+        await websocket.close(code=1008)
+        return
+    
+    try:
         while True:
             data = await websocket.receive_text()
             message = json.loads(data)
             
-            # Mesaj tipine göre işle
             if message["type"] == "chat":
+                participant = db.query(RoomParticipant).filter(
+                    RoomParticipant.room_id == room_id,
+                    RoomParticipant.user_id == user.id
+                ).first()
+                
+                if participant and participant.is_muted:
+                    await websocket.send_json({
+                        "type": "error",
+                        "message": "Bu odada susturuldunuz, mesaj gönderemezsiniz"
+                    })
+                    continue
+                
                 await manager.broadcast({
                     "type": "chat",
-                    "user": message.get("user", "Anonim"),
+                    "user": username,
                     "message": message["message"],
+                    "role": user_role,
                     "timestamp": str(datetime.utcnow())
                 }, room_id)
             
             elif message["type"] == "draw":
-                # Beyaz tahta çizimleri
                 await manager.broadcast({
                     "type": "draw",
                     "data": message["data"],
+                    "user": username,
                     "timestamp": str(datetime.utcnow())
                 }, room_id)
             
             elif message["type"] == "cursor":
-                # İmleç pozisyonları
                 await manager.broadcast({
                     "type": "cursor",
-                    "user": message.get("user", "Anonim"),
+                    "user": username,
                     "x": message["x"],
                     "y": message["y"]
                 }, room_id)
@@ -315,6 +514,7 @@ async def websocket_endpoint(
         manager.disconnect(websocket, room_id)
         await manager.broadcast({
             "type": "system",
-            "message": "Bir kullanıcı ayrıldı",
+            "message": f"{username} odadan ayrıldı",
+            "user": username,
             "timestamp": str(datetime.utcnow())
         }, room_id)

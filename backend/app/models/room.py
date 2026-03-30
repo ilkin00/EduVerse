@@ -12,7 +12,7 @@ class Room(Base):
     room_type = Column(String(50), default="public")  # public, private, course
     owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
     max_participants = Column(Integer, default=10)
-    settings = Column(JSON, default={})  # beyaz tahta ayarları, izinler vb.
+    settings = Column(JSON, default={})
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -27,7 +27,9 @@ class RoomParticipant(Base):
     id = Column(Integer, primary_key=True, index=True)
     room_id = Column(Integer, ForeignKey("rooms.id", ondelete="CASCADE"))
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
-    role = Column(String(50), default="participant")  # host, moderator, participant
+    role = Column(String(50), default="member")  # owner, admin, moderator, member, guest
+    is_muted = Column(Boolean, default=False)
+    is_banned = Column(Boolean, default=False)
     joined_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships

@@ -3,11 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.v1 import router as api_router
 from app.core.database import engine, Base
+from app.middleware import RateLimitMiddleware
 import json
 from urllib.parse import parse_qs
-import jwt  # pip install PyJWT
+import jwt
 
-# Veritabanı tablolarını oluştur (sadece geliştirme için)
+# Veritabanı tablolarını oluştur
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
@@ -15,6 +16,9 @@ app = FastAPI(
     version=settings.VERSION,
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
+
+# Rate Limit Middleware (YENİ)
+app.add_middleware(RateLimitMiddleware)
 
 # CORS ayarları
 app.add_middleware(
@@ -30,9 +34,6 @@ app.add_middleware(
         "http://eduvers.site",
         "https://api.eduvers.site",
         "http://api.eduvers.site",
-        "https://admin.eduvers.site",
-        "http://admin.eduvers.site",
-        "*"  # Geliştirme için, production'da kaldır
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -44,10 +45,10 @@ app.add_middleware(
 # API router'ını ekle
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
-# WebSocket bağlantılarını tut (user_id -> list of websockets)
+# WebSocket bağlantılarını tut
 active_connections = {}
 
-JWT_SECRET = settings.SECRET_KEY  # config dosyanda olmalı
+JWT_SECRET = settings.SECRET_KEY
 JWT_ALGORITHM = "HS256"
 
 def decode_token(token: str):
@@ -64,7 +65,6 @@ async def websocket_endpoint(websocket: WebSocket):
     user_id = None
 
     try:
-        # Token'dan user_id al (query parametresinden)
         query_string = websocket.scope.get('query_string', b'').decode()
         params = parse_qs(query_string)
         token = params.get('token', [None])[0]
@@ -75,7 +75,6 @@ async def websocket_endpoint(websocket: WebSocket):
                 await websocket.close(code=1008)
                 return
             
-            # Aynı kullanıcı için listeye ekle
             if user_id not in active_connections:
                 active_connections[user_id] = []
             active_connections[user_id].append(websocket)
@@ -120,7 +119,6 @@ async def websocket_endpoint(websocket: WebSocket):
 
     except WebSocketDisconnect:
         if user_id and user_id in active_connections:
-            # Bu websocket'i listeden çıkar
             active_connections[user_id] = [c for c in active_connections[user_id] if c != websocket]
             if not active_connections[user_id]:
                 del active_connections[user_id]

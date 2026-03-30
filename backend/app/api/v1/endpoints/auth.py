@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
@@ -12,7 +12,6 @@ from app.services.auth import AuthService
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
 
-# get_current_user fonksiyonunu buraya taşıyalım
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -38,12 +37,10 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
 @router.post("/register", response_model=UserResponse)
 def register(user: UserCreate, db: Session = Depends(get_db)):
     """Yeni kullanıcı kaydı"""
-    # Email kontrolü
     db_user = db.query(User).filter(User.email == user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     
-    # Username kontrolü
     db_user = db.query(User).filter(User.username == user.username).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Username already taken")
@@ -52,8 +49,12 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     return db_user
 
 @router.post("/login", response_model=Token)
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    """Kullanıcı girişi"""
+def login(
+    request: Request,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
+):
+    """Kullanıcı girişi - Refresh token ile"""
     user = AuthService.authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(
@@ -62,15 +63,60 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    access_token = AuthService.create_access_token(
-        data={"sub": user.username}
+    access_token = AuthService.create_access_token(data={"sub": user.username})
+    
+    client_ip = request.client.host if request.client else None
+    user_agent = request.headers.get("user-agent")
+    
+    refresh_token = AuthService.create_refresh_token(
+        db=db,
+        user_id=user.id,
+        device_name=user_agent[:100] if user_agent else None,
+        ip_address=client_ip
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer"
+    }
+
+@router.post("/refresh")
+def refresh_token(
+    refresh_token: str,
+    db: Session = Depends(get_db)
+):
+    """Yeni access token al"""
+    new_access_token = AuthService.refresh_access_token(db, refresh_token)
+    if not new_access_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token"
+        )
+    return {"access_token": new_access_token, "token_type": "bearer"}
+
+@router.post("/logout")
+def logout(
+    refresh_token: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Çıkış yap - refresh token'ı iptal et"""
+    AuthService.revoke_refresh_token(db, refresh_token)
+    return {"message": "Successfully logged out"}
+
+@router.post("/logout/all")
+def logout_all_devices(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Tüm cihazlardan çıkış yap"""
+    AuthService.revoke_all_user_sessions(db, current_user.id)
+    return {"message": "Logged out from all devices"}
 
 @router.get("/me", response_model=UserResponse)
 def read_users_me(current_user: User = Depends(get_current_user)):
     """Mevcut kullanıcı bilgilerini getir"""
     return current_user
 
-# Export for other modules
 __all__ = ["get_current_user", "oauth2_scheme"]

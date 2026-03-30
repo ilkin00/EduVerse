@@ -1,52 +1,59 @@
-from pydantic import BaseModel
-from typing import Optional, List
+from pydantic import BaseModel, Field
+from typing import Optional, List, Dict
 from datetime import datetime
 
-# Base Room
 class RoomBase(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = None
     room_type: str = "public"
     max_participants: int = 10
-    settings: dict = {}
+    settings: Optional[Dict] = None
 
-# Create Room
 class RoomCreate(RoomBase):
     pass
 
-# Update Room
 class RoomUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
+    room_type: Optional[str] = None
     max_participants: Optional[int] = None
-    settings: Optional[dict] = None
+    settings: Optional[Dict] = None
     is_active: Optional[bool] = None
 
-# Room in DB
-class RoomInDB(RoomBase):
+class RoomResponse(BaseModel):
     id: int
+    name: str
+    description: Optional[str]
+    room_type: str
     owner_id: int
+    max_participants: int
+    participant_count: int = 0
     is_active: bool
     created_at: datetime
-    updated_at: Optional[datetime] = None
+    updated_at: Optional[datetime]
     
     class Config:
         from_attributes = True
 
-# Room Response
-class RoomResponse(RoomInDB):
-    participant_count: int = 0
-
-# Participant
 class RoomParticipantBase(BaseModel):
     user_id: int
-    role: str = "participant"
+    role: str = "member"
 
-class RoomParticipantResponse(RoomParticipantBase):
+class RoomParticipantResponse(BaseModel):
     id: int
     room_id: int
-    joined_at: datetime
+    user_id: int
     username: Optional[str] = None
+    role: str
+    is_muted: bool
+    is_banned: bool
+    joined_at: datetime
     
     class Config:
         from_attributes = True
+
+class RoleUpdate(BaseModel):
+    role: str  # owner, admin, moderator, member, guest
+
+class MuteUpdate(BaseModel):
+    is_muted: bool
