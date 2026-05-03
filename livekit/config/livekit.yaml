@@ -2,11 +2,23 @@ port: 7880
 rtc:
   tcp_port: 7881
   udp_port: 7881
-  use_external_ip: true
-
+  port_range_start: 7881
+  port_range_end: 7881
+  use_external_ip: false
+  stun_servers:
+    - stun:stun.l.google.com:19302
+    - stun:stun1.l.google.com:19302
+  turn_servers:
+    - host: 212.109.194.202
+      port: 3478
+      protocol: udp
+      username: eduverse
+      credential: EduVerseTURN2026!
+redis:
+  address: redis:6379
+  password: "EduVerseRedis2026Secure!"
+  db: 0
 keys:
-  livekit-key: livekit-secret
-
+  apikey: "zlTrRT0HnDglglj+yrhKJZNWr+wYoL47hWmDQTuQl1M="
 logging:
   level: info
-  json: false

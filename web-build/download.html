@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduVerse - İndir</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 60px;
+        }
+
+        .logo {
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .subtitle {
+            font-size: 20px;
+            opacity: 0.9;
+        }
+
+        .download-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 60px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+
+        .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .version {
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .size {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+
+        .download-btn:hover {
+            opacity: 0.9;
+        }
+
+        .features {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin-top: 40px;
+        }
+
+        .features h3 {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .feature {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .feature-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .github-link {
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .github-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: #24292e;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.3s;
+        }
+
+        .github-btn:hover {
+            transform: scale(1.05);
+        }
+
+        @media (max-width: 768px) {
+            .download-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">📚 EduVerse</div>
+            <div class="subtitle">Eğitimde Dijital Dönüşüm Platformu</div>
+        </div>
+
+        <div class="download-grid" id="downloadGrid">
+            <!-- Android -->
+            <div class="card" data-platform="android">
+                <div class="icon">📱</div>
+                <h2>Android</h2>
+                <div class="version" id="android-version">Yükleniyor...</div>
+                <div class="size" id="android-size">-</div>
+                <button class="download-btn" onclick="downloadApp('android')">
+                    APK İndir
+                </button>
+            </div>
+
+            <!-- Windows -->
+            <div class="card" data-platform="windows">
+                <div class="icon">🪟</div>
+                <h2>Windows</h2>
+                <div class="version" id="windows-version">Yükleniyor...</div>
+                <div class="size" id="windows-size">-</div>
+                <button class="download-btn" onclick="downloadApp('windows')">
+                    EXE İndir
+                </button>
+            </div>
+
+            <!-- Linux -->
+            <div class="card" data-platform="linux">
+                <div class="icon">🐧</div>
+                <h2>Linux</h2>
+                <div class="version" id="linux-version">Yükleniyor...</div>
+                <div class="size" id="linux-size">-</div>
+                <button class="download-btn" onclick="downloadApp('linux')">
+                    AppImage İndir
+                </button>
+            </div>
+        </div>
+
+        <div class="features">
+            <h3>✨ Özellikler</h3>
+            <div class="feature-list">
+                <div class="feature">
+                    <div class="feature-icon">📝</div>
+                    <h4>Notlar Sistemi</h4>
+                    <p>Zengin metin, çizim ve sesli notlar</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">💬</div>
+                    <h4>Gerçek Zamanlı Sohbet</h4>
+                    <p>WebSocket ile anlık mesajlaşma</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🎥</div>
+                    <h4>Sesli/Görüntülü Görüşme</h4>
+                    <p>WebRTC ile kaliteli görüşme</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">👥</div>
+                    <h4>Arkadaşlık Sistemi</h4>
+                    <p>Arkadaş ekleme ve davet sistemi</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="github-link">
+            <a href="https://github.com/ilkinhuseynli/EduVerse" class="github-btn" target="_blank">
+                <span>🔗</span> GitHub'da İncele
+            </a>
+        </div>
+    </div>
+
+    <script>
+        async function loadVersions() {
+            try {
+                const response = await fetch('/api/latest');
+                const versions = await response.json();
+                
+                if (versions.android) {
+                    document.getElementById('android-version').textContent = `v${versions.android.version}`;
+                    document.getElementById('android-size').textContent = versions.android.file_size || 'Hazırlanıyor';
+                } else {
+                    document.getElementById('android-version').textContent = 'Yakında';
+                    document.getElementById('android-size').textContent = 'Admin tarafından yüklenecek';
+                }
+                
+                if (versions.windows) {
+                    document.getElementById('windows-version').textContent = `v${versions.windows.version}`;
+                    document.getElementById('windows-size').textContent = versions.windows.file_size || 'Hazırlanıyor';
+                } else {
+                    document.getElementById('windows-version').textContent = 'Yakında';
+                    document.getElementById('windows-size').textContent = 'Admin tarafından yüklenecek';
+                }
+                
+                if (versions.linux) {
+                    document.getElementById('linux-version').textContent = `v${versions.linux.version}`;
+                    document.getElementById('linux-size').textContent = versions.linux.file_size || 'Hazırlanıyor';
+                } else {
+                    document.getElementById('linux-version').textContent = 'Yakında';
+                    document.getElementById('linux-size').textContent = 'Admin tarafından yüklenecek';
+                }
+            } catch (error) {
+                console.error('Error loading versions:', error);
+            }
+        }
+
+        async function downloadApp(platform) {
+            // İndirme butonuna basıldığında
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = 'İndiriliyor...';
+            btn.disabled = true;
+            
+            try {
+                // İndirme takibi yap
+                await fetch('/api/track-download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ platform, version: 'latest' })
+                });
+                
+                // Direkt dosyayı indir
+                window.location.href = `/api/download/${platform}`;
+                
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Download error:', error);
+                alert('İndirme başlatılamadı. Lütfen daha sonra tekrar deneyin.');
+                btn.textContent = originalText;
+                btn.disabled = false;
+cat > /root/EduVerse/web-build/download.html << 'EOF'
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduVerse - İndir</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 60px;
+        }
+
+        .logo {
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .subtitle {
+            font-size: 20px;
+            opacity: 0.9;
+        }
+
+        .download-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 60px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+
+        .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .version {
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .size {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+
+        .download-btn:hover {
+            opacity: 0.9;
+        }
+
+        .features {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin-top: 40px;
+        }
+
+        .features h3 {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .feature {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .feature-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .github-link {
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .github-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: #24292e;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.3s;
+        }
+
+        .github-btn:hover {
+            transform: scale(1.05);
+        }
+
+        @media (max-width: 768px) {
+            .download-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">📚 EduVerse</div>
+            <div class="subtitle">Eğitimde Dijital Dönüşüm Platformu</div>
+        </div>
+
+        <div class="download-grid" id="downloadGrid">
+            <!-- Android -->
+            <div class="card" data-platform="android">
+                <div class="icon">📱</div>
+                <h2>Android</h2>
+                <div class="version" id="android-version">Yükleniyor...</div>
+                <div class="size" id="android-size">-</div>
+                <button class="download-btn" onclick="downloadApp('android')">
+                    APK İndir
+                </button>
+            </div>
+
+            <!-- Windows -->
+            <div class="card" data-platform="windows">
+                <div class="icon">🪟</div>
+                <h2>Windows</h2>
+                <div class="version" id="windows-version">Yükleniyor...</div>
+                <div class="size" id="windows-size">-</div>
+                <button class="download-btn" onclick="downloadApp('windows')">
+                    EXE İndir
+                </button>
+            </div>
+
+            <!-- Linux -->
+            <div class="card" data-platform="linux">
+                <div class="icon">🐧</div>
+                <h2>Linux</h2>
+                <div class="version" id="linux-version">Yükleniyor...</div>
+                <div class="size" id="linux-size">-</div>
+                <button class="download-btn" onclick="downloadApp('linux')">
+                    AppImage İndir
+                </button>
+            </div>
+        </div>
+
+        <div class="features">
+            <h3>✨ Özellikler</h3>
+            <div class="feature-list">
+                <div class="feature">
+                    <div class="feature-icon">📝</div>
+                    <h4>Notlar Sistemi</h4>
+                    <p>Zengin metin, çizim ve sesli notlar</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">💬</div>
+                    <h4>Gerçek Zamanlı Sohbet</h4>
+                    <p>WebSocket ile anlık mesajlaşma</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🎥</div>
+                    <h4>Sesli/Görüntülü Görüşme</h4>
+                    <p>WebRTC ile kaliteli görüşme</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">👥</div>
+                    <h4>Arkadaşlık Sistemi</h4>
+                    <p>Arkadaş ekleme ve davet sistemi</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="github-link">
+            <a href="https://github.com/ilkinhuseynli/EduVerse" class="github-btn" target="_blank">
+                <span>🔗</span> GitHub'da İncele
+            </a>
+        </div>
+    </div>
+
+    <script>
+        async function loadVersions() {
+            try {
+                const response = await fetch('/api/latest');
+                const versions = await response.json();
+                
+                if (versions.android) {
+                    document.getElementById('android-version').textContent = `v${versions.android.version}`;
+                    document.getElementById('android-size').textContent = versions.android.file_size || 'Hazırlanıyor';
+                } else {
+                    document.getElementById('android-version').textContent = 'Yakında';
+                    document.getElementById('android-size').textContent = 'Admin tarafından yüklenecek';
+                }
+                
+                if (versions.windows) {
+                    document.getElementById('windows-version').textContent = `v${versions.windows.version}`;
+                    document.getElementById('windows-size').textContent = versions.windows.file_size || 'Hazırlanıyor';
+                } else {
+                    document.getElementById('windows-version').textContent = 'Yakında';
+                    document.getElementById('windows-size').textContent = 'Admin tarafından yüklenecek';
+                }
+                
+                if (versions.linux) {
+                    document.getElementById('linux-version').textContent = `v${versions.linux.version}`;
+                    document.getElementById('linux-size').textContent = versions.linux.file_size || 'Hazırlanıyor';
+                } else {
+                    document.getElementById('linux-version').textContent = 'Yakında';
+                    document.getElementById('linux-size').textContent = 'Admin tarafından yüklenecek';
+                }
+            } catch (error) {
+                console.error('Error loading versions:', error);
+            }
+        }
+
+        async function downloadApp(platform) {
+            // İndirme butonuna basıldığında
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = 'İndiriliyor...';
+            btn.disabled = true;
+            
+            try {
+                // İndirme takibi yap
+                await fetch('/api/track-download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ platform, version: 'latest' })
+                });
+                
+                // Direkt dosyayı indir
+                window.location.href = `/api/download/${platform}`;
+                
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Download error:', error);
+                alert('İndirme başlatılamadı. Lütfen daha sonra tekrar deneyin.');
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        loadVersions();
+    </script>
+</body>
+</html>

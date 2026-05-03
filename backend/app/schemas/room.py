@@ -31,9 +31,18 @@ class RoomResponse(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: Optional[datetime]
+    livekit_token: Optional[str] = None  # YENİ: Oda token'ı
+    livekit_url: Optional[str] = None    # YENİ: LiveKit URL
     
     class Config:
         from_attributes = True
+
+class RoomJoinResponse(BaseModel):
+    message: str
+    room_id: int
+    livekit_token: Optional[str] = None
+    livekit_url: Optional[str] = None
+    participant_count: int = 0
 
 class RoomParticipantBase(BaseModel):
     user_id: int

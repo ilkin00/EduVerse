@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, notes, rooms, files, ai, friends, chat, settings, storage, notifications, gamification
+from app.api.v1.endpoints import auth, notes, rooms, files, ai, friends, chat, settings, storage, notifications, gamification, livekit
 
 router = APIRouter()
 
@@ -14,3 +14,4 @@ router.include_router(settings.router, prefix="/settings", tags=["settings"])
 router.include_router(storage.router, prefix="/storage", tags=["storage"])
 router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
 router.include_router(gamification.router, prefix="/gamification", tags=["gamification"])
+router.include_router(livekit.router, prefix="/livekit", tags=["livekit"])

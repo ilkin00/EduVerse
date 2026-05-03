@@ -16,7 +16,7 @@ loguru
 email-validator
 websockets
 PyJWT
-# Dosya yükleme için
 python-magic==0.4.27
 Pillow==10.1.0
 aiofiles==23.2.1
+livekit-api==1.1.0

@@ -35,6 +35,12 @@ class Settings(BaseSettings):
     OPENROUTER_API_KEY: str
     OPENROUTER_API_URL: str = "https://openrouter.ai/api/v1/chat/completions"
     
+    # === LİVEKİT EKLENDİ ===
+    LIVEKIT_API_KEY: str = "apikey"
+    LIVEKIT_API_SECRET: str = "zlTrRT0HnDglglj+yrhKJZNWr+wYoL47hWmDQTuQl1M="
+    LIVEKIT_URL: str = "ws://livekit:7880"  # Docker internal
+    LIVEKIT_WS_URL: str = "wss://livekit.eduvers.site"  # External URL
+    
     class Config:
         env_file = ".env"
         case_sensitive = True

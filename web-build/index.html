@@ -1,12 +1,117 @@
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
-    <title>EduVerse Web</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduVerse - Eğitimde Dijital Dönüşüm</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            text-align: center;
+            color: white;
+        }
+
+        .logo {
+            font-size: 64px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .subtitle {
+            font-size: 20px;
+            opacity: 0.9;
+            margin-bottom: 40px;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 18px;
+            text-decoration: none;
+            transition: transform 0.3s;
+        }
+
+        .btn-primary {
+            background: white;
+            color: #667eea;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+        }
+
+        .features {
+            margin-top: 80px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+
+        .feature {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h1>EduVerse Web App</h1>
-    <p>API: <a href="http://api.eduvers.site">api.eduvers.site</a></p>
-    <p>Mobile: <a href="http://app.eduvers.site">app.eduvers.site</a></p>
-    <p>Adminer: <a href="http://admin.eduvers.site">admin.eduvers.site</a></p>
+    <div class="container">
+        <div class="logo">📚 EduVerse</div>
+        <h1>Eğitimde Yeni Nesil Platform</h1>
+        <div class="subtitle">Notlar, Sohbet, Görüntülü Görüşme ve Daha Fazlası</div>
+        
+        <div class="buttons">
+            <a href="/download" class="btn btn-primary">📥 Hemen İndir</a>
+            <a href="https://github.com/ilkinhuseynli/EduVerse" class="btn btn-secondary" target="_blank">🔗 GitHub</a>
+        </div>
+
+        <div class="features">
+            <div class="feature">
+                <h3>📝 Akıllı Notlar</h3>
+                <p>Zengin metin, çizim ve sesli notlar</p>
+            </div>
+            <div class="feature">
+                <h3>💬 Anlık Sohbet</h3>
+                <p>WebSocket ile gerçek zamanlı mesajlaşma</p>
+            </div>
+            <div class="feature">
+                <h3>🎥 Görüntülü Görüşme</h3>
+                <p>WebRTC ile yüksek kaliteli görüşme</p>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

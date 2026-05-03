@@ -24,19 +24,19 @@ services:
   redis:
     image: redis:7-alpine
     container_name: eduverse-redis
-    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass "EduVerseRedis2026Secure!"
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
     networks:
       - eduverse-network
-    command: redis-server --appendonly yes
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "EduVerseRedis2026Secure!", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
   backend:
     build: ./backend
@@ -53,6 +53,11 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - SECRET_KEY=eduverse-gizli-anahtar-2026
+      - WEBRTC_SERVER_URL=http://webrtc:3001
+      - LIVEKIT_URL=wss://livekit.eduvers.site
+      - LIVEKIT_API_KEY=apikey
+      - LIVEKIT_API_SECRET=zlTrRT0HnDglglj+yrhKJZNWr+wYoL47hWmDQTuQl1M=
+      - LIVEKIT_HTTP_URL=https://api-livekit.eduvers.site
     volumes:
       - ./backend:/app
     depends_on:
@@ -64,23 +69,109 @@ services:
       - eduverse-network
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
+  webrtc:
+    build: ./webrtc
+    container_name: eduverse-webrtc
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - NODE_ENV=production
+      - CORS_ORIGIN=https://app.eduvers.site,https://eduvers.site,https://webrtc.eduvers.site
+    volumes:
+      - ./webrtc:/app
+      - /app/node_modules
+    networks:
+      - eduverse-network
+    command: node server.js
+
+  livekit:
+    build: ./livekit
+    container_name: eduverse-livekit
+    restart: unless-stopped
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "7881:7881/udp"
+    volumes:
+      - ./livekit/config:/etc/livekit
+    networks:
+      - eduverse-network
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  coturn:
+    image: coturn/coturn:latest
+    container_name: eduverse-coturn
+    restart: unless-stopped
+    ports:
+      - "3478:3478"
+      - "3478:3478/udp"
+      - "5349:5349"
+      - "5349:5349/udp"
+      - "49152-65535:49152-65535/udp"
+    networks:
+      - eduverse-network
+    command: |
+      --log-file=stdout
+      --external-ip=212.109.194.202
+      --listening-port=3478
+      --tls-listening-port=5349
+      --min-port=49152
+      --max-port=65535
+      --user=eduverse:EduVerseTURN2026!
+      --realm=livekit.eduvers.site
+      --no-cli
+      --no-multicast-peers
+      --verbose
+
+  web:
+    build: ./web-build
+    container_name: eduverse-web
+    restart: unless-stopped
+    expose:
+      - "3500"
+    environment:
+      - PORT=3500
+      - NODE_ENV=production
+      - JWT_SECRET=eduverse-secret-key-2026
+    volumes:
+      - ./web-build:/app
+      - /app/node_modules
+      - web_data:/app/data
+    networks:
+      - eduverse-network
+    command: node server.js
+
   nginx:
     image: nginx:alpine
     container_name: eduverse-nginx
     restart: unless-stopped
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-      - /var/www/web-app/build:/var/www/web-app/build:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
       - ./nginx/logs:/var/log/nginx
     ports:
       - "80:80"
       - "443:443"
     depends_on:
       - backend
+      - webrtc
+      - livekit
       - mobile-app
+      - web
     networks:
       - eduverse-network
+
+  certbot:
+    image: certbot/certbot
+    container_name: eduverse-certbot
+    volumes:
+      - ./nginx/ssl:/etc/letsencrypt
+      - ./nginx/ssl-data:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 
   adminer:
     image: adminer:latest
@@ -107,9 +198,9 @@ services:
     environment:
       - EXPO_PUBLIC_API_URL=https://api.eduvers.site
       - EXPO_PUBLIC_WEB_URL=https://eduvers.site
+      - EXPO_PUBLIC_WS_URL=wss://webrtc.eduvers.site
       - REACT_NATIVE_PACKAGER_HOSTNAME=0.0.0.0
       - NODE_ENV=development
-      - EXPO_PACKAGER_PROXY_URL=https://app.eduvers.site  # ✅ Eklendi
     volumes:
       - ./frontend/mobile:/app
       - /app/node_modules
@@ -128,3 +219,5 @@ volumes:
     name: eduverse-postgres-data
   redis_data:
     name: eduverse-redis-data
+  web_data:
+    name: eduverse-web-data

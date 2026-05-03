@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduVerse - Admin Panel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+        }
+
+        .login-container, .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .login-box {
+            background: white;
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .login-box h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .stat-number {
+            font-size: 36px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            margin-top: 10px;
+        }
+
+        .versions-table {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: #f8f8f8;
+            font-weight: 600;
+        }
+
+        .add-version, .upload-section {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .error {
+            color: red;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .logout-btn {
+            background: #dc3545;
+            margin-top: 0;
+            width: auto;
+            padding: 8px 16px;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div id="loginPanel" class="login-container">
+        <div class="login-box">
+            <h2>🔐 Admin Girişi</h2>
+            <input type="text" id="username" placeholder="Kullanıcı Adı">
+            <input type="password" id="password" placeholder="Şifre">
+            <button onclick="login()">Giriş Yap</button>
+            <div id="loginError" class="error"></div>
+        </div>
+    </div>
+
+    <div id="adminPanel" style="display:none;">
+        <div class="admin-container">
+            <button class="logout-btn" onclick="logout()">Çıkış Yap</button>
+            <h1>📊 Admin Panel</h1>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalDownloads">0</div>
+                    <div class="stat-label">Toplam İndirme</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="todayDownloads">0</div>
+                    <div class="stat-label">Bugün İndirme</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="androidCount">0</div>
+                    <div class="stat-label">Android İndirme</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="windowsCount">0</div>
+                    <div class="stat-label">Windows İndirme</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="linuxCount">0</div>
+                    <div class="stat-label">Linux İndirme</div>
+                </div>
+            </div>
+
+            <div class="versions-table">
+                <table>
+                    <thead>
+                        <tr><th>Platform</th><th>Versiyon</th><th>Değişiklikler</th><th>Boyut</th><th>Tarih</th><th>İşlem</th></tr>
+                    </thead>
+                    <tbody id="versionsList"></tbody>
+                </table>
+            </div>
+
+            <!-- APK Yükleme Bölümü -->
+            <div class="upload-section">
+                <h3>📱 APK / Uygulama Yükle</h3>
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label>Platform</label>
+                        <select id="uploadPlatform">
+                            <option value="android">Android (APK)</option>
+                            <option value="windows">Windows (EXE)</option>
+                            <option value="linux">Linux (AppImage)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Versiyon</label>
+                        <input type="text" id="uploadVersion" placeholder="1.0.0" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Değişiklikler</label>
+                        <textarea id="uploadChangelog" rows="2" placeholder="Yenilikler..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Dosya Seç (.apk / .exe / .AppImage)</label>
+                        <input type="file" id="apkFile" accept=".apk,.exe,.AppImage,.appimage" required>
+                    </div>
+                    <button type="button" onclick="uploadApk()">📤 Dosyayı Yükle</button>
+                </form>
+                <div id="uploadStatus"></div>
+            </div>
+
+            <div class="add-version">
+                <h3>➕ Yeni Versiyon Ekle (Sadece Bilgi)</h3>
+                <div class="form-group">
+                    <label>Platform</label>
+                    <select id="newPlatform">
+                        <option value="android">Android (APK)</option>
+                        <option value="windows">Windows (EXE)</option>
+                        <option value="linux">Linux (AppImage)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Versiyon</label>
+                    <input type="text" id="newVersion" placeholder="1.0.0">
+                </div>
+                <div class="form-group">
+                    <label>Değişiklikler</label>
+                    <textarea id="newChangelog" rows="3" placeholder="Yenilikler..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Dosya Boyutu</label>
+                    <input type="text" id="newSize" placeholder="25MB">
+                </div>
+                <button onclick="addVersion()">Versiyon Ekle</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let token = null;
+
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+                
+                if (data.token) {
+                    token = data.token;
+                    localStorage.setItem('adminToken', token);
+                    showAdminPanel();
+                    loadStats();
+                    loadVersions();
+                } else {
+                    document.getElementById('loginError').textContent = 'Hatalı giriş!';
+                }
+            } catch (error) {
+                document.getElementById('loginError').textContent = 'Bağlantı hatası!';
+            }
+        }
+
+        function logout() {
+            token = null;
+            localStorage.removeItem('adminToken');
+            document.getElementById('loginPanel').style.display = 'block';
+            document.getElementById('adminPanel').style.display = 'none';
+        }
+
+        function showAdminPanel() {
+            document.getElementById('loginPanel').style.display = 'none';
+            document.getElementById('adminPanel').style.display = 'block';
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/admin/stats', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const stats = await response.json();
+                
+                document.getElementById('totalDownloads').textContent = stats.total || 0;
+                document.getElementById('todayDownloads').textContent = stats.today || 0;
+                
+                stats.byPlatform.forEach(p => {
+                    if (p.platform === 'android') document.getElementById('androidCount').textContent = p.count;
+                    if (p.platform === 'windows') document.getElementById('windowsCount').textContent = p.count;
+                    if (p.platform === 'linux') document.getElementById('linuxCount').textContent = p.count;
+                });
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        async function loadVersions() {
+            try {
+                const response = await fetch('/api/versions');
+                const versions = await response.json();
+                
+                const tbody = document.getElementById('versionsList');
+                tbody.innerHTML = '';
+                
+                versions.forEach(v => {
+                    const row = tbody.insertRow();
+                    row.insertCell(0).textContent = v.platform;
+                    row.insertCell(1).textContent = v.version;
+                    row.insertCell(2).textContent = v.changelog || '-';
+                    row.insertCell(3).textContent = v.file_size || '-';
+                    row.insertCell(4).textContent = new Date(v.released_at).toLocaleDateString('tr');
+                    const actionCell = row.insertCell(5);
+                    if (v.file_path) {
+                        actionCell.innerHTML = `<a href="${v.file_path}" target="_blank" style="color: #667eea;">İndir</a>`;
+                    } else {
+                        actionCell.textContent = '-';
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading versions:', error);
+            }
+        }
+
+        async function addVersion() {
+            const platform = document.getElementById('newPlatform').value;
+            const version = document.getElementById('newVersion').value;
+            const changelog = document.getElementById('newChangelog').value;
+            const file_size = document.getElementById('newSize').value;
+
+            if (!version) {
+                alert('Versiyon bilgisi gerekli!');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/admin/update-version', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ platform, version, changelog, file_size })
+                });
+
+                if (response.ok) {
+                    alert('Versiyon eklendi!');
+                    loadVersions();
+                    document.getElementById('newVersion').value = '';
+                    document.getElementById('newChangelog').value = '';
+                    document.getElementById('newSize').value = '';
+                } else {
+                    alert('Hata oluştu!');
+                }
+            } catch (error) {
+                alert('Bağlantı hatası!');
+            }
+        }
+
+        async function uploadApk() {
+            const platform = document.getElementById('uploadPlatform').value;
+            const version = document.getElementById('uploadVersion').value;
+            const changelog = document.getElementById('uploadChangelog').value;
+            const fileInput = document.getElementById('apkFile');
+            
+            if (!fileInput.files[0]) {
+                alert('Lütfen bir dosya seçin!');
+                return;
+            }
+            
+            if (!version) {
+                alert('Versiyon bilgisi gerekli!');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('platform', platform);
+            formData.append('version', version);
+            formData.append('changelog', changelog);
+            
+            const statusDiv = document.getElementById('uploadStatus');
+            statusDiv.innerHTML = '<div class="status" style="background:#cfe2ff;">📤 Yükleniyor...</div>';
+            
+            try {
+                const response = await fetch('/api/admin/upload-apk', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    statusDiv.innerHTML = `<div class="status success">✅ ${result.message}<br>📦 Versiyon: ${result.version}<br>💾 Boyut: ${result.size}<br>🔗 İndirme linki: <a href="${result.url}" target="_blank">${result.url}</a></div>`;
+                    document.getElementById('uploadVersion').value = '';
+                    document.getElementById('uploadChangelog').value = '';
+                    document.getElementById('apkFile').value = '';
+                    loadVersions();
+                } else {
+                    statusDiv.innerHTML = `<div class="status error">❌ Hata: ${result.error}</div>`;
+                }
+            } catch (error) {
+                statusDiv.innerHTML = '<div class="status error">❌ Bağlantı hatası!</div>';
+            }
+        }
+
+        // Check saved token
+        const savedToken = localStorage.getItem('adminToken');
+        if (savedToken) {
+            token = savedToken;
+            showAdminPanel();
+            loadStats();
+            loadVersions();
+        }
+    </script>
+</body>
+</html>

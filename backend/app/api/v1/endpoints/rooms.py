@@ -3,12 +3,14 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
 import json
+import jwt
 from app.core.database import get_db
 from app.core.config import settings
 from app.models.user import User
 from app.models.room import Room, RoomParticipant
-from app.schemas.room import RoomCreate, RoomUpdate, RoomResponse, RoomParticipantResponse, RoleUpdate, MuteUpdate
-from app.api.v1.endpoints.auth import get_current_user, oauth2_scheme
+from app.schemas.room import RoomCreate, RoomUpdate, RoomResponse, RoomParticipantResponse, RoleUpdate, MuteUpdate, RoomJoinResponse
+from app.api.v1.endpoints.auth import get_current_user
+from app.services.livekit_service import livekit_service
 
 router = APIRouter()
 
@@ -19,6 +21,28 @@ def get_user_role(room_id: int, user_id: int, db: Session) -> str:
         RoomParticipant.user_id == user_id
     ).first()
     return participant.role if participant else "guest"
+
+def get_livekit_info(room_id: int, user_id: int, username: str, role: str) -> dict:
+    """LiveKit token ve URL bilgisini oluştur"""
+    try:
+        is_teacher = role in ["owner", "admin", "moderator"]
+        room_name = f"room_{room_id}"
+        token = livekit_service.create_token(
+            room_name=room_name,
+            participant_identity=str(user_id),
+            participant_name=username,
+            is_teacher=is_teacher
+        )
+        return {
+            "livekit_token": token,
+            "livekit_url": settings.LIVEKIT_WS_URL
+        }
+    except Exception as e:
+        print(f"LiveKit token hatası: {e}")
+        return {
+            "livekit_token": None,
+            "livekit_url": settings.LIVEKIT_WS_URL
+        }
 
 # WebSocket manager
 class ConnectionManager:
@@ -76,7 +100,7 @@ def create_room(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Yeni oda oluştur"""
+    """Yeni oda oluştur - LiveKit token ile"""
     db_room = Room(
         **room.model_dump(),
         owner_id=current_user.id
@@ -94,6 +118,12 @@ def create_room(
     db.commit()
     
     db_room.participant_count = 1
+    
+    # LiveKit token ekle
+    livekit_info = get_livekit_info(db_room.id, current_user.id, current_user.username, "owner")
+    db_room.livekit_token = livekit_info["livekit_token"]
+    db_room.livekit_url = livekit_info["livekit_url"]
+    
     return db_room
 
 @router.get("/{room_id}", response_model=RoomResponse)
@@ -102,7 +132,7 @@ def read_room(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Oda detayı"""
+    """Oda detayı - LiveKit token ile"""
     room = db.query(Room).filter(Room.id == room_id).first()
     if not room:
         raise HTTPException(status_code=404, detail="Oda bulunamadı")
@@ -111,6 +141,13 @@ def read_room(
         RoomParticipant.room_id == room_id,
         RoomParticipant.is_banned == False
     ).count()
+    
+    # Kullanıcının rolünü al
+    user_role = get_user_role(room_id, current_user.id, db)
+    livekit_info = get_livekit_info(room_id, current_user.id, current_user.username, user_role)
+    room.livekit_token = livekit_info["livekit_token"]
+    room.livekit_url = livekit_info["livekit_url"]
+    
     return room
 
 @router.put("/{room_id}", response_model=RoomResponse)
@@ -134,6 +171,12 @@ def update_room(
     
     db.commit()
     db.refresh(room)
+    
+    # LiveKit token ekle
+    livekit_info = get_livekit_info(room_id, current_user.id, current_user.username, user_role)
+    room.livekit_token = livekit_info["livekit_token"]
+    room.livekit_url = livekit_info["livekit_url"]
+    
     return room
 
 @router.delete("/{room_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -153,13 +196,13 @@ def delete_room(
     db.delete(room)
     db.commit()
 
-@router.post("/{room_id}/join")
+@router.post("/{room_id}/join", response_model=RoomJoinResponse)
 def join_room(
     room_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Odaya katıl"""
+    """Odaya katıl - LiveKit token ile"""
     room = db.query(Room).filter(Room.id == room_id).first()
     if not room:
         raise HTTPException(status_code=404, detail="Oda bulunamadı")
@@ -187,17 +230,34 @@ def join_room(
         RoomParticipant.user_id == current_user.id
     ).first()
     
+    role = "member"
     if not existing:
         participant = RoomParticipant(
             room_id=room_id,
             user_id=current_user.id,
-            role="member"
+            role=role
         )
         db.add(participant)
         db.commit()
-        return {"message": "Odaya katıldınız", "room_id": room_id}
     else:
-        return {"message": "Zaten bu odadasınız", "room_id": room_id}
+        role = existing.role
+    
+    # LiveKit token oluştur
+    livekit_info = get_livekit_info(room_id, current_user.id, current_user.username, role)
+    
+    # Katılımcı sayısını güncelle
+    participant_count = db.query(RoomParticipant).filter(
+        RoomParticipant.room_id == room_id,
+        RoomParticipant.is_banned == False
+    ).count()
+    
+    return RoomJoinResponse(
+        message="Odaya katıldınız" if not existing else "Zaten bu odadasınız",
+        room_id=room_id,
+        livekit_token=livekit_info["livekit_token"],
+        livekit_url=livekit_info["livekit_url"],
+        participant_count=participant_count
+    )
 
 @router.post("/{room_id}/leave")
 def leave_room(
