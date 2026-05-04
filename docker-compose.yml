@@ -1,30 +1,38 @@
+version: '3.8'
+
 services:
   postgres:
     image: postgres:15-alpine
     container_name: eduverse-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: eduverse_user
-      POSTGRES_PASSWORD: EduVerse2026!
-      POSTGRES_DB: eduverse_db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
       TZ: Europe/Istanbul
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"  # Only localhost
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - eduverse-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U eduverse_user -d eduverse_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
 
   redis:
     image: redis:7-alpine
     container_name: eduverse-redis
-    command: redis-server --appendonly yes --requirepass "EduVerseRedis2026Secure!"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD}
     ports:
       - "127.0.0.1:6379:6379"
     volumes:
@@ -32,34 +40,31 @@ services:
     networks:
       - eduverse-network
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "EduVerseRedis2026Secure!", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
 
   backend:
     build: ./backend
     container_name: eduverse-backend
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"  # Only through nginx
+    env_file:
+      - .env
     environment:
-      - POSTGRES_SERVER=postgres
-      - POSTGRES_USER=eduverse_user
-      - POSTGRES_PASSWORD=EduVerse2026!
-      - POSTGRES_DB=eduverse_db
-      - POSTGRES_PORT=5432
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - SECRET_KEY=eduverse-gizli-anahtar-2026
-      - WEBRTC_SERVER_URL=http://webrtc:3001
-      - LIVEKIT_URL=wss://livekit.eduvers.site
-      - LIVEKIT_API_KEY=apikey
-      - LIVEKIT_API_SECRET=zlTrRT0HnDglglj+yrhKJZNWr+wYoL47hWmDQTuQl1M=
-      - LIVEKIT_HTTP_URL=https://api-livekit.eduvers.site
+      - RELOAD=false  # Production mode - CRITICAL
+      - WORKERS=4
     volumes:
-      - ./backend:/app
+      - uploads_data:/app/uploads  # Volume instead of bind mount
     depends_on:
       postgres:
         condition: service_healthy
@@ -67,27 +72,20 @@ services:
         condition: service_healthy
     networks:
       - eduverse-network
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-
-  webrtc:
-    build: ./webrtc
-    container_name: eduverse-webrtc
-    restart: unless-stopped
-    ports:
-      - "3001:3001"
-    environment:
-      - PORT=3001
-      - NODE_ENV=production
-      - CORS_ORIGIN=https://app.eduvers.site,https://eduvers.site,https://webrtc.eduvers.site
-    volumes:
-      - ./webrtc:/app
-      - /app/node_modules
-    networks:
-      - eduverse-network
-    command: node server.js
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   livekit:
-    build: ./livekit
+    image: livekit/livekit-server:latest
     container_name: eduverse-livekit
     restart: unless-stopped
     ports:
@@ -95,37 +93,21 @@ services:
       - "7881:7881"
       - "7881:7881/udp"
     volumes:
-      - ./livekit/config:/etc/livekit
+      - ./livekit/config:/etc/livekit:ro
+    environment:
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
     networks:
       - eduverse-network
     depends_on:
       redis:
         condition: service_healthy
-
-  coturn:
-    image: coturn/coturn:latest
-    container_name: eduverse-coturn
-    restart: unless-stopped
-    ports:
-      - "3478:3478"
-      - "3478:3478/udp"
-      - "5349:5349"
-      - "5349:5349/udp"
-      - "49152-65535:49152-65535/udp"
-    networks:
-      - eduverse-network
-    command: |
-      --log-file=stdout
-      --external-ip=212.109.194.202
-      --listening-port=3478
-      --tls-listening-port=5349
-      --min-port=49152
-      --max-port=65535
-      --user=eduverse:EduVerseTURN2026!
-      --realm=livekit.eduvers.site
-      --no-cli
-      --no-multicast-peers
-      --verbose
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
 
   web:
     build: ./web-build
@@ -136,14 +118,17 @@ services:
     environment:
       - PORT=3500
       - NODE_ENV=production
-      - JWT_SECRET=eduverse-secret-key-2026
+      - JWT_SECRET=${JWT_SECRET}
     volumes:
-      - ./web-build:/app
-      - /app/node_modules
       - web_data:/app/data
     networks:
       - eduverse-network
-    command: node server.js
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
 
   nginx:
     image: nginx:alpine
@@ -153,17 +138,22 @@ services:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
       - ./nginx/logs:/var/log/nginx
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     ports:
       - "80:80"
       - "443:443"
     depends_on:
       - backend
-      - webrtc
       - livekit
-      - mobile-app
       - web
     networks:
       - eduverse-network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
 
   certbot:
     image: certbot/certbot
@@ -171,43 +161,7 @@ services:
     volumes:
       - ./nginx/ssl:/etc/letsencrypt
       - ./nginx/ssl-data:/var/www/certbot
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
-
-  adminer:
-    image: adminer:latest
-    container_name: eduverse-adminer
-    restart: unless-stopped
-    ports:
-      - "8080:8080"
-    networks:
-      - eduverse-network
-    depends_on:
-      - postgres
-
-  mobile-app:
-    build: 
-      context: ./frontend/mobile
-      dockerfile: Dockerfile
-    container_name: eduverse-mobile
-    restart: unless-stopped
-    ports:
-      - "8081:8081"
-      - "19000:19000"
-      - "19001:19001"
-      - "19002:19002"
-    environment:
-      - EXPO_PUBLIC_API_URL=https://api.eduvers.site
-      - EXPO_PUBLIC_WEB_URL=https://eduvers.site
-      - EXPO_PUBLIC_WS_URL=wss://webrtc.eduvers.site
-      - REACT_NATIVE_PACKAGER_HOSTNAME=0.0.0.0
-      - NODE_ENV=development
-    volumes:
-      - ./frontend/mobile:/app
-      - /app/node_modules
-    networks:
-      - eduverse-network
-    stdin_open: true
-    tty: true
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $$!; done;'"
 
 networks:
   eduverse-network:
@@ -219,5 +173,7 @@ volumes:
     name: eduverse-postgres-data
   redis_data:
     name: eduverse-redis-data
+  uploads_data:
+    name: eduverse-uploads-data
   web_data:
     name: eduverse-web-data

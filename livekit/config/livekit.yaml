@@ -1,24 +1,75 @@
+# LiveKit Optimized Configuration for EduVerse
 port: 7880
+
 rtc:
   tcp_port: 7881
   udp_port: 7881
   port_range_start: 7881
-  port_range_end: 7881
-  use_external_ip: false
+  port_range_end: 7885  # 5 port - yeterli
+  use_external_ip: true  # Düzeltildi!
+  external_ip: 212.109.194.202  # Senin sunucu IP'n
+  
+  # STUN - Sadece 1 server yeterli
   stun_servers:
-    - stun:stun.l.google.com:19302
-    - stun:stun1.l.google.com:19302
-  turn_servers:
-    - host: 212.109.194.202
-      port: 3478
-      protocol: udp
-      username: eduverse
-      credential: EduVerseTURN2026!
+    - stun:stun.cloudflare.com:3478  # Cloudflare STUN (daha hızlı)
+  
+  # TURN - DISABLED (LiveKit'in built-in TURN'u yeterli)
+  turn_servers: []  # Boş - çok RAM yer!
+  
+  # ICE timeout optimizasyonu
+  ice_servers_refresh_interval: 0
+
+# Redis - env'den al
 redis:
   address: redis:6379
-  password: "EduVerseRedis2026Secure!"
+  password: ${REDIS_PASSWORD}  # Artık env'den
   db: 0
+  max_retries: 3
+  min_retry_backoff: 250ms
+
+# API Keys - env'den al
 keys:
-  apikey: "zlTrRT0HnDglglj+yrhKJZNWr+wYoL47hWmDQTuQl1M="
-logging:
-  level: info
+  ${LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET}
+
+# Performance optimizations
+rtc_config:
+  max_ice_config_priority: 100
+  
+room:
+  empty_timeout: 180s  # 3 dakika - hızlı cleanup
+  departure_timeout: 30s
+  max_participants: 30  # Oda başı max participant
+
+# Disable unused features (RAM save)
+ingress:
+  enabled: false
+  
+egress:
+  enabled: false
+  
+webhook:
+  disabled: true
+  
+telemetry:
+  stats_collection_interval: 0s  # Disabled
+  
+prometheus:
+  enabled: false
+
+# Logging - minimal
+logger:
+  level: warn  # Sadece warning ve error
+  
+# Connection limits
+limits:
+  max_connections: 500
+  max_rooms: 100
+  
+# Video - lower bitrate for memory
+video:
+  max_bitrate: 1000  # kbps (düşürüldü)
+  max_framerate: 24
+  
+# Audio
+audio:
+  max_bitrate: 48  # kbps (düşürüldü)

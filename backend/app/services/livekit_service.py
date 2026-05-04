@@ -1,6 +1,9 @@
 from livekit import api
 from app.core.config import settings
 import logging
+from functools import lru_cache
+from datetime import datetime, timedelta
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -8,97 +11,62 @@ class LiveKitService:
     def __init__(self):
         self.api_key = settings.LIVEKIT_API_KEY
         self.api_secret = settings.LIVEKIT_API_SECRET
-        self.livekit_url = settings.LIVEKIT_URL
+        self._token_cache = {}  # Simple TTL cache
+        self._cache_ttl = 300  # 5 minutes
     
-    def create_token(
-        self,
-        room_name: str,
-        participant_identity: str,
-        participant_name: str = None,
-        is_teacher: bool = False,
-        ttl: int = 3600
-    ) -> str:
-        """
-        LiveKit için token oluşturur (GÜNCEL API)
-        """
-        try:
-            # LiveKit 1.0+ API - VideoGrant ile
-            video_grant = api.VideoGrant(
-                room_join=True,
-                room=room_name,
-                can_publish=True,
-                can_subscribe=True,
-                can_publish_data=is_teacher,
-                can_update_own_metadata=is_teacher
-            )
-            
-            # AccessToken oluştur (yeni API)
-            token = api.AccessToken(
-                api_key=self.api_key,
-                api_secret=self.api_secret,
-                grant=video_grant,
-                identity=participant_identity,
-                name=participant_name or participant_identity,
-                ttl=ttl
-            )
-            
-            jwt_token = token.to_jwt()
-            logger.info(f"✅ Token created for {participant_identity} in room {room_name}")
-            return jwt_token
-            
-        except Exception as e:
-            logger.error(f"❌ Token creation failed: {e}")
-            # Alternatif yöntemi dene
-            try:
-                return self.create_token_alternative(room_name, participant_identity, participant_name, is_teacher, ttl)
-            except:
-                raise e
-    
-    def create_token_alternative(
-        self,
-        room_name: str,
-        participant_identity: str,
-        participant_name: str = None,
-        is_teacher: bool = False,
-        ttl: int = 3600
-    ) -> str:
-        """Alternatif token oluşturma (eski API uyumlu)"""
-        import jwt
-        import time
-        import uuid
+    def create_token(self, room_name: str, participant_identity: str, 
+                     participant_name: str = None, is_teacher: bool = False, 
+                     ttl: int = 3600) -> str:
+        """Optimized token generation with caching"""
         
-        now = int(time.time())
+        # Cache key oluştur
+        cache_key = f"{room_name}:{participant_identity}:{is_teacher}"
         
-        payload = {
-            "iss": self.api_key,
-            "sub": participant_identity,
-            "exp": now + ttl,
-            "nbf": now,
-            "iat": now,
-            "jti": str(uuid.uuid4()),
-            "name": participant_name or participant_identity,
-            "video": {
-                "room": room_name,
-                "roomJoin": True,
-                "canPublish": True,
-                "canSubscribe": True,
-                "canPublishData": is_teacher,
-                "canUpdateOwnMetadata": is_teacher
-            }
-        }
+        # Cache kontrolü
+        if cache_key in self._token_cache:
+            token_data, expiry = self._token_cache[cache_key]
+            if datetime.now() < expiry:
+                logger.info(f"Token cache hit for {participant_identity}")
+                return token_data
         
-        token = jwt.encode(payload, self.api_secret, algorithm="HS256")
-        logger.info(f"✅ Alternative token created for {participant_identity}")
-        return token
-    
-    def create_room_token(self, room_name: str, user_id: int, user_name: str, role: str) -> str:
-        """Room bazlı token oluşturur"""
-        is_teacher = (role == "teacher" or role == "instructor")
-        return self.create_token(
-            room_name=room_name,
-            participant_identity=str(user_id),
-            participant_name=user_name,
-            is_teacher=is_teacher
+        # Token üret (compact permissions)
+        video_grant = api.VideoGrant(
+            room_join=True,
+            room=room_name,
+            can_publish=is_teacher,        # Sadece teacher publish yapabilir
+            can_subscribe=True,
+            can_publish_data=is_teacher,
+            can_update_own_metadata=False,  # Disable metadata to save memory
+            can_ingress=False,              # Ingress kapalı
+            can_recording=False,            # Recording kapalı (memory save)
+            can_list_rooms=False            # Room list kapalı
         )
+        
+        token = api.AccessToken(
+            api_key=self.api_key,
+            api_secret=self.api_secret,
+            grant=video_grant,
+            identity=participant_identity[:64],  # Identity truncate
+            name=(participant_name or participant_identity)[:64],
+            ttl=min(ttl, 7200)  # Max 2 hours
+        )
+        
+        jwt_token = token.to_jwt()
+        
+        # Cache'e kaydet (5 dk)
+        self._token_cache[cache_key] = (jwt_token, datetime.now() + timedelta(seconds=self._cache_ttl))
+        
+        # Clean old cache (her 100 token'da bir)
+        if len(self._token_cache) > 100:
+            self._clean_cache()
+        
+        return jwt_token
+    
+    def _clean_cache(self):
+        """Expired tokenları temizle"""
+        now = datetime.now()
+        expired = [k for k, (_, exp) in self._token_cache.items() if now >= exp]
+        for k in expired:
+            del self._token_cache[k]
 
 livekit_service = LiveKitService()
